@@ -1,9 +1,9 @@
 import { Emitter } from "creeba-js";
 import type { Identity, PeerId, SyncTransport, TransportEvents, WireFrame } from "creeba-js";
-import type { ChatMessage } from "./types";
+import type { Wire } from "./types";
 
 /**
- * Mobile transport — STUB (not implemented), typed on the `ChatMessage` payload.
+ * Mobile transport — STUB (not implemented), typed on the `Wire` payload.
  *
  * iroh CANNOT be reused as-is: `@number0/iroh` is a native NAPI addon (Node/Bun)
  * that does not run in Hermes. Two ways to get a real mobile transport, pluggable
@@ -17,12 +17,12 @@ import type { ChatMessage } from "./types";
  * Until this transport is wired up, the app persists and displays local messages
  * but does not exchange with any peer.
  */
-export class StubTransport implements SyncTransport<ChatMessage> {
-  private readonly emitter = new Emitter<TransportEvents<ChatMessage>>();
+export class StubTransport implements SyncTransport<Wire> {
+  private readonly emitter = new Emitter<TransportEvents<Wire>>();
 
-  on<K extends keyof TransportEvents<ChatMessage>>(
+  on<K extends keyof TransportEvents<Wire>>(
     event: K,
-    cb: (...args: TransportEvents<ChatMessage>[K]) => void,
+    cb: (...args: TransportEvents<Wire>[K]) => void,
   ): () => void {
     return this.emitter.on(event, cb);
   }
@@ -34,8 +34,8 @@ export class StubTransport implements SyncTransport<ChatMessage> {
 
   join(_topic: string): void {}
   setIdentity(_identity: Identity): void {}
-  send(_peerId: PeerId, _frame: WireFrame<ChatMessage>): void {}
-  broadcast(_frame: WireFrame<ChatMessage>): void {}
+  send(_peerId: PeerId, _frame: WireFrame<Wire>): void {}
+  broadcast(_frame: WireFrame<Wire>): void {}
 
   destroy(): void {
     this.emitter.clear();

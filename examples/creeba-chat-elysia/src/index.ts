@@ -20,9 +20,16 @@ const CHAT_SERVICE_TYPE = "creebachat";
 const store = new SqliteStore(join(DATA_DIR, "chat.sqlite"));
 let identity = await store.getOrCreateIdentity();
 
-// creeba-js is generic: the app fixes the protocol and the payload (ChatMessage).
-const sync = new CreebaSync<ChatMessage>({
-  transport: new IrohMdnsTransport<ChatMessage>({
+// The app payload is a small union: live messages + a request/response backfill
+// so a node that just joined can pull the history it missed. creeba-js stays
+// generic (opaque payload); this protocol is entirely defined here.
+type Wire =
+  | { t: "msg"; msg: ChatMessage }
+  | { t: "sync-req"; since: number }
+  | { t: "sync-res"; items: ChatMessage[] };
+
+const sync = new CreebaSync<Wire>({
+  transport: new IrohMdnsTransport<Wire>({
     protocol: CHAT_PROTOCOL,
     serviceType: CHAT_SERVICE_TYPE,
   }),
@@ -51,11 +58,32 @@ function broadcast(payload: unknown): void {
   }
 }
 
-// Payload received from a peer → persist (idempotent) + relay to web clients.
-sync.on("data", (message) => {
-  void store.insertMessage(message).catch(() => {});
-  broadcast({ type: "message", message });
+// Persist a message and, only if it's new, relay it to the web clients.
+async function ingest(msg: ChatMessage): Promise<void> {
+  if (await store.insertMessage(msg)) broadcast({ type: "message", message: msg });
+}
+
+sync.on("data", (frame, from) => {
+  switch (frame.t) {
+    case "msg":
+      void ingest(frame.msg);
+      break;
+    case "sync-req":
+      // A peer asks for what it missed → reply with our delta since its cursor.
+      if (from) sync.send(from.peerId, { t: "sync-res", items: store.messagesSince(ROOM, frame.since) });
+      break;
+    case "sync-res":
+      for (const msg of frame.items) void ingest(msg);
+      break;
+  }
 });
+
+// Backfill: when a peer joins, pull the history we're missing from it. Both
+// sides do this symmetrically; duplicates are dropped by the idempotent insert.
+sync.on("peer", (peer) => {
+  sync.send(peer.peerId, { t: "sync-req", since: store.latestTs(ROOM) });
+});
+
 sync.on("peers", (peers) => broadcast({ type: "peers", peers: peers.map(toPeer) }));
 sync.on("status", (status) => broadcast({ type: "status", status }));
 
@@ -93,7 +121,7 @@ const app = new Elysia()
           ts: Date.now(),
         };
         await store.insertMessage(message);
-        sync.broadcast(message);
+        sync.broadcast({ t: "msg", msg: message });
         broadcast({ type: "message", message });
       } else if (data.type === "setName" && data.name?.trim()) {
         identity = { ...identity, name: data.name.trim() };

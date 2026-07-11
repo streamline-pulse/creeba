@@ -77,15 +77,38 @@ export class SqliteStore {
       room,
       limit,
     );
-    return rows
-      .map((r) => ({
-        id: r.id,
-        room: r.room,
-        userId: r.user_id,
-        name: r.name,
-        body: r.body,
-        ts: Number(r.ts),
-      }))
-      .reverse();
+    return rows.map(fromRow).reverse();
+  }
+
+  /** Highest known timestamp for a room (the local backfill cursor); 0 if empty. */
+  async latestTs(room: string): Promise<number> {
+    const row = await this.db.getFirstAsync<{ m: number | null }>(
+      `SELECT MAX(ts) AS m FROM messages WHERE room = ?`,
+      room,
+    );
+    return row?.m ?? 0;
+  }
+
+  /**
+   * Messages at or after `since` (ascending). Uses `>=` so the boundary message
+   * is included; the receiver dedups by `id`, so no message is ever missed.
+   */
+  async messagesSince(room: string, since: number, limit = 1000): Promise<ChatMessage[]> {
+    const rows = await this.db.getAllAsync<MessageRow>(
+      `SELECT id, room, user_id, name, body, ts FROM messages WHERE room = ? AND ts >= ? ORDER BY ts ASC LIMIT ?`,
+      room,
+      since,
+      limit,
+    );
+    return rows.map(fromRow);
   }
 }
+
+const fromRow = (r: MessageRow): ChatMessage => ({
+  id: r.id,
+  room: r.room,
+  userId: r.user_id,
+  name: r.name,
+  body: r.body,
+  ts: Number(r.ts),
+});

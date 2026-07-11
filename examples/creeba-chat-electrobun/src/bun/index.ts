@@ -14,6 +14,7 @@ import {
   type ChatRPC,
   type Identity,
   type Peer,
+  type Wire,
 } from "../shared/chat.ts";
 
 const DEV_SERVER_URL = "http://localhost:5173";
@@ -42,9 +43,9 @@ const store = await ChatDB.open(join(dataDir, "chat.duckdb"));
 let identity: Identity = await store.getOrCreateIdentity();
 
 // --- P2P sync (creeba: generic core + iroh/mDNS transport) ---
-// The app defines its protocol/service and the app payload (ChatMessage).
-const sync = new CreebaSync<ChatMessage>({
-  transport: new IrohMdnsTransport<ChatMessage>({
+// The app defines its protocol/service and the app payload (Wire union).
+const sync = new CreebaSync<Wire>({
+  transport: new IrohMdnsTransport<Wire>({
     protocol: CHAT_PROTOCOL,
     serviceType: CHAT_SERVICE_TYPE,
   }),
@@ -87,18 +88,43 @@ const rpc = BrowserView.defineRPC<ChatRPC>({
           ts: Date.now(),
         };
         await store.insertMessage(message);
-        sync.broadcast(message);
+        sync.broadcast({ t: "msg", msg: message });
         return message;
       },
     },
   },
 });
 
-// Payload received from a peer → persist (idempotent) + push to the webview.
-sync.on("data", (message) => {
+// Persist an incoming message + push it to the webview (the UI dedups by id).
+const ingest = (message: ChatMessage): void => {
   void store.insertMessage(message).catch(() => {});
   rpc.send.message(message);
+};
+
+sync.on("data", (frame, from) => {
+  switch (frame.t) {
+    case "msg":
+      ingest(frame.msg);
+      break;
+    case "sync-req":
+      // A peer asks for what it missed → reply with our delta since its cursor.
+      if (from)
+        void store
+          .messagesSince(DEFAULT_ROOM, frame.since)
+          .then((items) => sync.send(from.peerId, { t: "sync-res", items }));
+      break;
+    case "sync-res":
+      for (const msg of frame.items) ingest(msg);
+      break;
+  }
 });
+
+// Backfill: when a peer joins, pull the history we're missing from it. Both
+// sides do this symmetrically; duplicates are dropped by the idempotent insert.
+sync.on("peer", (peer) => {
+  void store.latestTs(DEFAULT_ROOM).then((since) => sync.send(peer.peerId, { t: "sync-req", since }));
+});
+
 sync.on("peers", (peers) => rpc.send.peers(peers.map(toPeer)));
 sync.on("status", (status) => rpc.send.status(status));
 

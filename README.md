@@ -71,12 +71,43 @@ const sync = new CreebaSync<ChatMessage>({
 });
 
 sync.on("data", (message, from) => {/* received from a peer → persist + display */});
-sync.on("peers", (peers) => {/* … */});
+sync.on("peer", (peer) => {/* a peer joined → good place to backfill history */});
+sync.on("peers", (peers) => {/* full peer list changed */});
 sync.on("status", (s) => {/* s.ready, s.publicKey */});
 
 const { publicKey } = await sync.start();  // bind + join the topic
 sync.broadcast({ id: "1", userId: "abc", body: "hi", ts: Date.now() });
 ```
+
+### Backfilling history on join
+
+The core carries only live payloads and stores nothing, so replaying the history
+a late peer missed is an **app concern**. `CreebaSync` gives you the hook — the
+`peer` event (fired once when a peer is identified) — and point-to-point
+`send(peerId, payload)`; the app owns the cursor, ordering and dedup.
+
+The recommended shape is a **pull** (request/response) rather than each peer
+pushing its whole history. Model it inside your own payload union:
+
+```ts
+type Wire =
+  | { t: "msg"; msg: ChatMessage }
+  | { t: "sync-req"; since: number }        // requester's cursor
+  | { t: "sync-res"; items: ChatMessage[] };
+
+// On join, ask the new peer for what we're missing.
+sync.on("peer", (peer) => sync.send(peer.peerId, { t: "sync-req", since: store.latestTs() }));
+
+sync.on("data", (frame, from) => {
+  if (frame.t === "sync-req" && from) sync.send(from.peerId, { t: "sync-res", items: store.since(frame.since) });
+  else if (frame.t === "sync-res") for (const m of frame.items) store.insert(m); // idempotent by id
+  else if (frame.t === "msg") store.insert(frame.msg);
+});
+```
+
+Dedup by message `id` (idempotent inserts) makes this robust even if several
+peers answer. A full working reference lives in
+[`examples/creeba-chat-elysia`](./examples/creeba-chat-elysia/src/index.ts).
 
 ## Use in an Expo app (mobile)
 

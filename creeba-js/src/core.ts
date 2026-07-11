@@ -13,6 +13,12 @@ export interface CreebaSyncOptions<T = unknown> {
 interface CoreEvents<T> extends Record<string, unknown[]> {
   /** App payload received from a peer (2nd arg: the sender peer, if known). */
   data: [T, Peer | undefined];
+  /**
+   * A newly identified peer joined (fired once, after its `hello`). This is the
+   * hook to trigger an app-level backfill (e.g. request history from that peer).
+   * Not re-fired on metadata updates of an already-known peer.
+   */
+  peer: [Peer];
   peers: [Peer[]];
   status: [Status];
 }
@@ -71,7 +77,10 @@ export class CreebaSync<T = unknown> {
 
   private onFrame(peerId: PeerId, frame: WireFrame<T>): void {
     if (frame.kind === "hello") {
-      this.peersById.set(peerId, { peerId, userId: frame.userId, metadata: frame.metadata });
+      const isNew = !this.peersById.has(peerId);
+      const peer: Peer = { peerId, userId: frame.userId, metadata: frame.metadata };
+      this.peersById.set(peerId, peer);
+      if (isNew) this.emitter.emit("peer", peer);
       this.emitter.emit("peers", this.peers());
       return;
     }
