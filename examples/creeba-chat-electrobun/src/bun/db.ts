@@ -78,16 +78,41 @@ export class ChatDB {
     prepared.bindVarchar(1, room);
     prepared.bindInteger(2, limit);
     const reader = await prepared.runAndReadAll();
-    const rows = reader.getRowObjects();
-    return rows
-      .map((row) => ({
-        id: String(row.id),
-        room: String(row.room),
-        userId: String(row.user_id),
-        name: String(row.name),
-        body: String(row.body),
-        ts: Number(row.ts),
-      }))
-      .reverse();
+    return reader.getRowObjects().map(toMessage).reverse();
+  }
+
+  /** Highest known timestamp for a room (the local backfill cursor); 0 if empty. */
+  async latestTs(room: string): Promise<number> {
+    const prepared = await this.conn.prepare(`SELECT MAX(ts) AS m FROM messages WHERE room = $1`);
+    prepared.bindVarchar(1, room);
+    const reader = await prepared.runAndReadAll();
+    const m = reader.getRowObjects()[0]?.m;
+    return m == null ? 0 : Number(m);
+  }
+
+  /**
+   * Messages at or after `since` (ascending). Uses `>=` so the boundary message
+   * is included; the receiver dedups by `id`, so no message is ever missed.
+   */
+  async messagesSince(room: string, since: number, limit = 1000): Promise<ChatMessage[]> {
+    const prepared = await this.conn.prepare(
+      `SELECT id, room, user_id, name, body, ts
+       FROM messages WHERE room = $1 AND ts >= $2
+       ORDER BY ts ASC LIMIT $3`
+    );
+    prepared.bindVarchar(1, room);
+    prepared.bindBigInt(2, BigInt(since));
+    prepared.bindInteger(3, limit);
+    const reader = await prepared.runAndReadAll();
+    return reader.getRowObjects().map(toMessage);
   }
 }
+
+const toMessage = (row: Record<string, unknown>): ChatMessage => ({
+  id: String(row.id),
+  room: String(row.room),
+  userId: String(row.user_id),
+  name: String(row.name),
+  body: String(row.body),
+  ts: Number(row.ts),
+});

@@ -4,19 +4,19 @@ import type { Peer, Status, SyncTransport } from "creeba-js";
 import { SqliteStore } from "./store";
 import { StubTransport } from "./transport";
 import { DEFAULT_ROOM } from "./types";
-import type { ChatMessage, Profile } from "./types";
+import type { ChatMessage, Profile, Wire } from "./types";
 
 /**
  * Pick the transport: native iroh (`creeba-expo`) when the native module is
  * linked (dev build / EAS), otherwise fall back to the stub (Expo Go, web) — the
  * app stays functional locally, without P2P.
  */
-function createTransport(): SyncTransport<ChatMessage> {
+function createTransport(): SyncTransport<Wire> {
   try {
     // Lazy import: `requireNativeModule` throws if native is missing.
     // The native module fixes the ALPN/service (interop with desktop).
     const { IrohExpoTransport } = require("creeba-expo");
-    return new IrohExpoTransport() as SyncTransport<ChatMessage>;
+    return new IrohExpoTransport() as SyncTransport<Wire>;
   } catch {
     console.warn("[creeba-chat-expo] native iroh module unavailable — falling back to StubTransport (no P2P).");
     return new StubTransport();
@@ -43,14 +43,14 @@ export function useCreeba(room = DEFAULT_ROOM) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [status, setStatus] = useState<Status>({ ready: false });
-  const syncRef = useRef<CreebaSync<ChatMessage> | null>(null);
+  const syncRef = useRef<CreebaSync<Wire> | null>(null);
   const storeRef = useRef<SqliteStore | null>(null);
   const profileRef = useRef<Profile | null>(null);
 
   useEffect(() => {
     let disposed = false;
     const offs: Array<() => void> = [];
-    let sync: CreebaSync<ChatMessage> | undefined;
+    let active: CreebaSync<Wire> | undefined;
 
     (async () => {
       const store = await SqliteStore.open();
@@ -62,18 +62,44 @@ export function useCreeba(room = DEFAULT_ROOM) {
       profileRef.current = me;
       setProfile(me);
 
-      sync = new CreebaSync<ChatMessage>({
+      const sync = new CreebaSync<Wire>({
         transport: createTransport(),
         identity: { userId: me.userId, metadata: { name: me.name } },
         topic: room,
       });
+      active = sync;
       syncRef.current = sync;
 
-      // Payload received from a peer → persist (idempotent) + add to the UI.
+      // Persist an incoming message (idempotent) + add it to the UI (deduped by id).
+      const addIncoming = (message: ChatMessage) => {
+        void store.insertMessage(message).catch(() => {});
+        setMessages((prev) => (prev.some((x) => x.id === message.id) ? prev : [...prev, message]));
+      };
+
       offs.push(
-        sync.on("data", (message) => {
-          void store.insertMessage(message).catch(() => {});
-          setMessages((prev) => (prev.some((x) => x.id === message.id) ? prev : [...prev, message]));
+        sync.on("data", (frame, from) => {
+          switch (frame.t) {
+            case "msg":
+              addIncoming(frame.msg);
+              break;
+            case "sync-req":
+              // A peer asks for what it missed → reply with our delta since its cursor.
+              if (from)
+                void store
+                  .messagesSince(room, frame.since)
+                  .then((items) => sync.send(from.peerId, { t: "sync-res", items }));
+              break;
+            case "sync-res":
+              for (const msg of frame.items) addIncoming(msg);
+              break;
+          }
+        }),
+      );
+
+      // Backfill: when a peer joins, pull the history we're missing from it.
+      offs.push(
+        sync.on("peer", (peer) => {
+          void store.latestTs(room).then((since) => sync.send(peer.peerId, { t: "sync-req", since }));
         }),
       );
       offs.push(sync.on("peers", setPeers));
@@ -88,7 +114,7 @@ export function useCreeba(room = DEFAULT_ROOM) {
     return () => {
       disposed = true;
       for (const off of offs) off();
-      sync?.destroy();
+      active?.destroy();
       syncRef.current = null;
       storeRef.current = null;
     };
@@ -114,7 +140,7 @@ export function useCreeba(room = DEFAULT_ROOM) {
       };
       // Persist + local echo (peers receive it via the "data" event).
       await store.insertMessage(message);
-      sync.broadcast(message);
+      sync.broadcast({ t: "msg", msg: message });
       setMessages((prev) => (prev.some((x) => x.id === message.id) ? prev : [...prev, message]));
     },
     setName: (name: string) => {

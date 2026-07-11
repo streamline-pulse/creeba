@@ -62,9 +62,12 @@ export class SqliteStore {
       .run(name, userId);
   }
 
-  /** Insert a message (idempotent: ignores duplicates received over P2P). */
-  async insertMessage(message: ChatMessage): Promise<void> {
-    this.db
+  /**
+   * Insert a message (idempotent: ignores duplicates received over P2P).
+   * Returns `true` if the row was actually inserted (new), `false` if ignored.
+   */
+  async insertMessage(message: ChatMessage): Promise<boolean> {
+    const res = this.db
       .query(
         `INSERT OR IGNORE INTO messages (id, room, user_id, name, body, ts)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -77,6 +80,7 @@ export class SqliteStore {
         message.body,
         message.ts,
       );
+    return res.changes > 0;
   }
 
   async recentMessages(room: string, limit = 200): Promise<ChatMessage[]> {
@@ -86,23 +90,48 @@ export class SqliteStore {
          FROM messages WHERE room = ?
          ORDER BY ts DESC LIMIT ?`,
       )
-      .all(room, limit) as Array<{
-      id: string;
-      room: string;
-      user_id: string;
-      name: string;
-      body: string;
-      ts: number;
-    }>;
-    return rows
-      .map((r) => ({
-        id: r.id,
-        room: r.room,
-        userId: r.user_id,
-        name: r.name,
-        body: r.body,
-        ts: Number(r.ts),
-      }))
-      .reverse();
+      .all(room, limit) as MessageRow[];
+    return rows.map(fromRow).reverse();
+  }
+
+  /** Highest known timestamp for a room (the local backfill cursor); 0 if empty. */
+  latestTs(room: string): number {
+    const row = this.db
+      .query(`SELECT MAX(ts) AS m FROM messages WHERE room = ?`)
+      .get(room) as { m: number | null } | null;
+    return row?.m ?? 0;
+  }
+
+  /**
+   * Messages at or after `since` (ascending). Uses `>=` so the boundary message
+   * is included; the receiver dedups by `id`, so no message is ever missed.
+   */
+  messagesSince(room: string, since: number, limit = 1000): ChatMessage[] {
+    const rows = this.db
+      .query(
+        `SELECT id, room, user_id, name, body, ts
+         FROM messages WHERE room = ? AND ts >= ?
+         ORDER BY ts ASC LIMIT ?`,
+      )
+      .all(room, since, limit) as MessageRow[];
+    return rows.map(fromRow);
   }
 }
+
+interface MessageRow {
+  id: string;
+  room: string;
+  user_id: string;
+  name: string;
+  body: string;
+  ts: number;
+}
+
+const fromRow = (r: MessageRow): ChatMessage => ({
+  id: r.id,
+  room: r.room,
+  userId: r.user_id,
+  name: r.name,
+  body: r.body,
+  ts: Number(r.ts),
+});
