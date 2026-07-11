@@ -78,6 +78,96 @@ const { publicKey } = await sync.start();  // bind + join the topic
 sync.broadcast({ id: "1", userId: "abc", body: "hi", ts: Date.now() });
 ```
 
+## Use in an Expo app (mobile)
+
+On mobile the transport is provided by [`creeba-expo`](./creeba-expo), a native
+module (Swift/Kotlin via `iroh-ffi`) that implements the same `SyncTransport`.
+It speaks the same ALPN + wire format as the desktop, so mobile and desktop peers
+interoperate on the LAN.
+
+> **Requires a [dev build](https://docs.expo.dev/develop/development-builds/introduction/)**
+> — the native module does **not** run in Expo Go.
+
+### 1. Install
+
+```bash
+# published packages
+npx expo install creeba-js creeba-expo
+
+# or, from this monorepo, link them locally
+bun link creeba-js && bun link creeba-expo
+```
+
+### 2. Register the config plugin
+
+Add the plugin in `app.json` / `app.config.js`. It wires up the iOS local-network
+permission + Bonjour service and the Android network/multicast permissions:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      ["creeba-expo", { "localNetworkUsageDescription": "MyApp uses the local network to discover nearby peers." }]
+    ]
+  }
+}
+```
+
+`localNetworkUsageDescription` is optional (a sensible default is used).
+
+### 3. Prerequisites & prebuild
+
+- **iOS**: minimum deployment target **17.5** (set by the plugin), and the
+  `cocoapods-spm` gem must be installed so the iroh-ffi Swift Package resolves:
+
+  ```bash
+  gem install cocoapods-spm
+  ```
+
+- **Android**: no extra step — the plugin adds the permissions and the JNA
+  dependency automatically.
+
+Then generate the native projects and run a dev build:
+
+```bash
+npx expo prebuild
+npx expo run:ios      # or: npx expo run:android
+```
+
+### 4. Wire the transport into the core
+
+Use `IrohExpoTransport` exactly like `IrohMdnsTransport` on desktop. The app owns
+its message type and its local persistence (e.g. `expo-sqlite`):
+
+```ts
+import { CreebaSync } from "creeba-js";
+import { IrohExpoTransport } from "creeba-expo";
+
+interface ChatMessage { id: string; userId: string; body: string; ts: number }
+
+const sync = new CreebaSync<ChatMessage>({
+  transport: new IrohExpoTransport<ChatMessage>(),
+  identity: { userId: "abc", metadata: { name: "alice" } },
+  topic: "creeba-chat",
+});
+
+sync.on("data", (message, from) => {/* persist locally + render */});
+sync.on("peers", (peers) => {/* … */});
+
+await sync.start();
+sync.broadcast({ id: "1", userId: "abc", body: "hi", ts: Date.now() });
+```
+
+Tip: guard the native import so the app still runs in Expo Go / web (falling back
+to a no-op transport), as shown in
+[`examples/creeba-chat-expo/src/sync`](./examples/creeba-chat-expo/src/sync).
+
+> **Monorepo / linked packages**: `creeba-expo` ships its own `node_modules` with
+> possibly mismatched copies of `react-native` / `expo-modules-core`. Configure
+> Metro to resolve a single instance of these from the app (see
+> [`examples/creeba-chat-expo/metro.config.js`](./examples/creeba-chat-expo/metro.config.js)),
+> otherwise you'll hit `PlatformConstants could not be found` at runtime.
+
 ## Writing a transport
 
 Implement `SyncTransport`: `start()` (returns the local id), `join(topic)`,
