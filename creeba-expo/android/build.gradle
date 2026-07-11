@@ -1,0 +1,32 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.creeba.expo'
+version = '0.1.0'
+
+android {
+  namespace "com.creeba.expo"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // iroh Kotlin bindings (uniffi), published on Maven Central.
+  // Exclude the transitive JNA (JVM .jar variant): on Android we need the .aar
+  // variant (which ships the native .so). Keeping both puts the same
+  // `com.sun.jna.*` classes twice on the classpath → checkDuplicateClasses.
+  implementation("computer.iroh:iroh:1.0.0") {
+    exclude group: "net.java.dev.jna", module: "jna"
+  }
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1"
+  // uniffi relies on JNA at runtime to load the native lib (version aligned
+  // with what iroh 1.0.0 expects).
+  implementation "net.java.dev.jna:jna:5.15.0@aar"
+}
