@@ -1,0 +1,27 @@
+{
+	"name": "creeba-js",
+	"version": "0.1.0",
+	"description": "Portable Creeba P2P layer: generic core (presence, peers, routing of opaque app payloads) + pluggable transports (iroh + mDNS). No platform dependency; message shape and persistence belong to the application.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./iroh-mdns": "./src/transports/iroh-mdns.ts"
+	},
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"files": ["src"],
+	"peerDependencies": {
+		"@number0/iroh": "^1.0.0",
+		"bonjour-service": "^1.4.3"
+	},
+	"peerDependenciesMeta": {
+		"@number0/iroh": { "optional": true },
+		"bonjour-service": { "optional": true }
+	},
+	"devDependencies": {
+		"@number0/iroh": "^1.0.0",
+		"@types/bun": "latest",
+		"bonjour-service": "^1.4.3",
+		"typescript": "^5"
+	}
+}
