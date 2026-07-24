@@ -1,6 +1,9 @@
 import {
   Endpoint,
+  EndpointId,
   EndpointTicket,
+  SecretKey,
+  Signature,
   type Connection,
   type RecvStream,
   type SendStream,
@@ -49,6 +52,8 @@ interface MdnsBrowser {
   stop(): void;
 }
 
+const DEFAULT_MAX_FRAME_SIZE = 16 * 1024 * 1024;
+
 export interface IrohMdnsOptions {
   /**
    * App protocol → iroh ALPN (isolates the protocol between apps).
@@ -59,6 +64,54 @@ export interface IrohMdnsOptions {
   serviceType?: string;
   /** Prefix of the advertised mDNS instance name. Default: `"creeba"`. */
   serviceNamePrefix?: string;
+  /**
+   * 32-byte iroh secret key (see `generateSecretKey`). Persist it to keep a
+   * STABLE node-id across restarts. Omitted → a fresh (ephemeral) id each run.
+   */
+  secretKey?: number[];
+  /**
+   * Max accepted frame size in bytes (default 16 MiB). A peer announcing a
+   * larger frame has its connection dropped — bounds the reassembly buffer.
+   */
+  maxFrameSize?: number;
+  /**
+   * Optional connection allowlist. Returns false → the peer (by node-id) is
+   * rejected before any frame is exchanged. The app remains free to enforce
+   * its own trust at a higher level (e.g. signed identity in `hello`).
+   */
+  allowPeer?: (peerId: PeerId) => boolean;
+}
+
+/** Generate a fresh 32-byte iroh secret key (raw bytes), to persist by the app. */
+export function generateSecretKey(): number[] {
+  return SecretKey.generate().toBytes();
+}
+
+/** Public node-id (as seen in peer events) for a given secret key. */
+export function publicKeyOf(secretKey: number[]): string {
+  return SecretKey.fromBytes(secretKey).public().toString();
+}
+
+/** ed25519 signature (raw bytes) of `message` under `secretKey`. */
+export function sign(secretKey: number[], message: Uint8Array): number[] {
+  return SecretKey.fromBytes(secretKey).sign(Array.from(message)).toBytes();
+}
+
+/** Verify an ed25519 `signature` of `message` against a peer's node-id. */
+export function verify(
+  peerId: string,
+  message: Uint8Array,
+  signature: number[],
+): boolean {
+  try {
+    EndpointId.fromString(peerId).verify(
+      Array.from(message),
+      Signature.fromBytes(signature),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function frameBytes<T>(frame: WireFrame<T>): number[] {
@@ -89,6 +142,9 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
   private readonly alpn: number[];
   private readonly serviceType: string;
   private readonly serviceNamePrefix: string;
+  private readonly secretKey?: number[];
+  private readonly maxFrameSize: number;
+  private readonly allowPeer?: (peerId: PeerId) => boolean;
 
   /** peerId (iroh node-id) -> connection */
   private readonly connections = new Map<PeerId, PeerConn>();
@@ -101,6 +157,9 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
     this.alpn = Array.from(Buffer.from(options.protocol ?? DEFAULT_PROTOCOL));
     this.serviceType = options.serviceType ?? DEFAULT_SERVICE_TYPE;
     this.serviceNamePrefix = options.serviceNamePrefix ?? DEFAULT_SERVICE_NAME_PREFIX;
+    this.secretKey = options.secretKey;
+    this.maxFrameSize = options.maxFrameSize ?? DEFAULT_MAX_FRAME_SIZE;
+    this.allowPeer = options.allowPeer;
   }
 
   on<K extends keyof TransportEvents<T>>(
@@ -111,7 +170,10 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
   }
 
   async start(): Promise<string> {
-    const endpoint = await Endpoint.bind({ alpns: [this.alpn] });
+    const endpoint = await Endpoint.bind({
+      alpns: [this.alpn],
+      secretKey: this.secretKey,
+    });
     this.endpoint = endpoint;
     this.publicKey = endpoint.id().toString();
     this.refreshTicket();
@@ -216,6 +278,16 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
     const peerId = conn.remoteId().toString();
     this.dialing.delete(peerId);
 
+    if (this.allowPeer && !this.allowPeer(peerId)) {
+      try {
+        conn.close(0n, Array.from(Buffer.from("denied")));
+      } catch {
+        /* ignore */
+      }
+      log(`peer denied by allowPeer ${peerId.slice(0, 12)}…`);
+      return;
+    }
+
     if (this.connections.has(peerId) || peerId === this.publicKey) {
       try {
         conn.close(0n, Array.from(Buffer.from("dup")));
@@ -267,6 +339,12 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
       buf = concatBytes(buf, Uint8Array.from(chunk));
       while (buf.length >= 4) {
         const len = new DataView(buf.buffer, buf.byteOffset, 4).getUint32(0, false);
+        if (len > this.maxFrameSize) {
+          log(`frame too large (${len} > ${this.maxFrameSize}) — dropping peer`);
+          this.connections.get(peerId)?.conn.close(0n, Array.from(Buffer.from("frame-too-large")));
+          this.removePeer(peerId);
+          return;
+        }
         if (buf.length < 4 + len) break;
         const body = buf.slice(4, 4 + len);
         buf = buf.slice(4 + len);
