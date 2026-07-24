@@ -1,0 +1,19 @@
+{
+	"name": "@streamline-pulse/creeba-oplog-prisma",
+	"version": "0.1.0",
+	"description": "Prisma binding for @streamline-pulse/creeba-oplog: transparent mutation capture ($extends), a ready-made OpStore and Projection. One schema covers relational connectors (pg/mysql/sqlite/cockroach); a Mongo variant (synthetic key) is provided. The app only declares its syncable entities.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"files": ["src", "prisma"],
+	"peerDependencies": {
+		"@streamline-pulse/creeba-oplog": "*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5"
+	}
+}

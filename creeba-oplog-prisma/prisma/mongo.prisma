@@ -1,0 +1,39 @@
+// Modeles d'infra op-log — connecteur MongoDB. keyStrategy = "synthetic".
+// Difference vs relational : pas de cle primaire composite (interdit sur Mongo),
+// donc SyncFieldState porte un _id synthetique "entity::entityId::field" pose
+// par le binding. Chaque id est mappe sur _id. BigInt -> BSON Long.
+
+model SyncOps {
+  id         String   @id @map("_id") @default(uuid(7))
+  hlcWall    BigInt
+  hlcCounter Int
+  nodeId     String
+  actorId    String?
+  orgId      String?
+  entity     String
+  entityId   String
+  kind       String
+  fields     Json
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([orgId, hlcWall, hlcCounter])
+}
+
+model SyncClock {
+  id      String @id @map("_id") @default("singleton")
+  wall    BigInt
+  counter Int
+}
+
+model SyncFieldState {
+  id         String @id @map("_id")
+  entity     String
+  entityId   String
+  field      String
+  hlcWall    BigInt
+  hlcCounter Int
+  nodeId     String
+
+  @@index([entity, entityId])
+}
