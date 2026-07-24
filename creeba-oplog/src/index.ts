@@ -107,6 +107,8 @@ export interface RecordInput {
 export interface OpLogDeps {
   newId: () => string;
   now: () => number;
+  /** Called after a LOCAL op is recorded (hook for the transport to broadcast). */
+  onLocalOp?: (op: Op) => void;
 }
 
 export class OpLog {
@@ -141,6 +143,7 @@ export class OpLog {
     };
     await this.store.append(op);
     await this.store.setAppliedHlc(op.entity, op.entityId, hlc);
+    this.deps.onLocalOp?.(op);
     return op;
   }
 
