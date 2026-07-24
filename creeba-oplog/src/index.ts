@@ -75,14 +75,36 @@ export class HybridLogicalClock {
   }
 }
 
-/** Where the journal, the clock and the per-row applied-HLC live. App-provided. */
+/** An applied write, stamped for deterministic tiebreak on equal HLC. */
+export interface Stamp {
+  hlc: Hlc;
+  nodeId: string;
+}
+
+/** Per-field applied state of a row (+ tombstone), for field-level LWW. */
+export interface RowState {
+  fields: Record<string, Stamp>;
+  deletedHlc: Stamp | null;
+}
+
+/** Where the journal, the clock and the per-field applied-HLC live. App-provided. */
 export interface OpStore {
   append: (op: Op) => Promise<void>;
   list: (opts?: { sinceHlc?: Hlc }) => Promise<Op[]>;
   loadClock: () => Promise<Hlc | null>;
   saveClock: (hlc: Hlc) => Promise<void>;
-  getAppliedHlc: (entity: string, entityId: string) => Promise<Hlc | null>;
-  setAppliedHlc: (entity: string, entityId: string, hlc: Hlc) => Promise<void>;
+  loadRowState: (entity: string, entityId: string) => Promise<RowState | null>;
+  saveFieldHlc: (
+    entity: string,
+    entityId: string,
+    field: string,
+    stamp: Stamp
+  ) => Promise<void>;
+  saveDeletedHlc: (
+    entity: string,
+    entityId: string,
+    stamp: Stamp
+  ) => Promise<void>;
 }
 
 /** How an op materializes into the app's tables. App-provided. `upsert` MERGES. */
@@ -142,27 +164,57 @@ export class OpLog {
       fields: input.fields ?? {},
     };
     await this.store.append(op);
-    await this.store.setAppliedHlc(op.entity, op.entityId, hlc);
+    await this.stampLocal(op);
     this.deps.onLocalOp?.(op);
     return op;
   }
 
+  private async stampLocal(op: Op): Promise<void> {
+    const stamp: Stamp = { hlc: op.hlc, nodeId: this.nodeId };
+    if (op.kind === "delete")
+      await this.store.saveDeletedHlc(op.entity, op.entityId, stamp);
+    else
+      for (const field of Object.keys(op.fields))
+        await this.store.saveFieldHlc(op.entity, op.entityId, field, stamp);
+  }
+
   /**
-   * Apply a remote op (Phase 3). LWW: ignored if an equal/newer HLC was already
-   * applied to that row. Returns whether it was applied.
+   * Apply a remote op (Phase 3). Field-level LWW: each field is applied only if
+   * its HLC beats both that field's applied HLC and the row's tombstone. A
+   * delete tombstones the row if it beats the current tombstone. Ops carry
+   * deltas (only mutated fields), so concurrent edits to distinct fields merge.
+   * Returns whether anything was applied.
    */
   async applyRemote(op: Op, projection: Projection): Promise<boolean> {
     this.clock.receive(op.hlc, this.deps.now());
     await this.store.saveClock(this.clock.current);
 
-    const applied = await this.store.getAppliedHlc(op.entity, op.entityId);
-    if (applied && compareHlc(op.hlc, applied, op.nodeId, op.nodeId) <= 0)
-      return false;
+    const state = (await this.store.loadRowState(op.entity, op.entityId)) ?? {
+      fields: {},
+      deletedHlc: null,
+    };
+    const stamp: Stamp = { hlc: op.hlc, nodeId: op.nodeId };
+    const beats = (other: Stamp | null | undefined): boolean =>
+      !other || compareHlc(op.hlc, other.hlc, op.nodeId, other.nodeId) > 0;
 
-    if (op.kind === "delete") await projection.remove(op.entity, op.entityId);
-    else await projection.upsert(op.entity, op.entityId, op.fields);
+    if (op.kind === "delete") {
+      if (!beats(state.deletedHlc)) return false;
+      await projection.remove(op.entity, op.entityId);
+      await this.store.saveDeletedHlc(op.entity, op.entityId, stamp);
+      await this.store.append(op);
+      return true;
+    }
 
-    await this.store.setAppliedHlc(op.entity, op.entityId, op.hlc);
+    const winning: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(op.fields))
+      if (beats(state.fields[field]) && beats(state.deletedHlc))
+        winning[field] = value;
+
+    if (Object.keys(winning).length === 0) return false;
+
+    await projection.upsert(op.entity, op.entityId, winning);
+    for (const field of Object.keys(winning))
+      await this.store.saveFieldHlc(op.entity, op.entityId, field, stamp);
     await this.store.append(op);
     return true;
   }
