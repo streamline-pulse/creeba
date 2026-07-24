@@ -27,6 +27,8 @@ export interface SyncableEntity {
   model: string;
   entity: string;
   orgField: string;
+  /** Colonnes JAMAIS journalisees (secrets : mots de passe, tokens…). */
+  omit?: string[];
 }
 
 export interface OpLogConfig {
@@ -78,6 +80,7 @@ export function createOpLog(
   async function record(
     entity: string,
     orgField: string,
+    hidden: Set<string>,
     row: unknown,
     changed?: Set<string>
   ): Promise<void> {
@@ -89,7 +92,7 @@ export function createOpLog(
       if (kind === "upsert") {
         const keys = changed ?? new Set(Object.keys(r));
         for (const k of keys)
-          if (!volatile.has(k) && k in r) fields[k] = r[k];
+          if (!volatile.has(k) && !hidden.has(k) && k in r) fields[k] = r[k];
       }
       await oplog.record({
         entity,
@@ -105,15 +108,16 @@ export function createOpLog(
   }
 
   const query: Record<string, unknown> = {};
-  for (const { model, entity, orgField } of config.syncable) {
+  for (const { model, entity, orgField, omit } of config.syncable) {
+    const hidden = new Set(omit ?? []);
     const full = async ({ args, query: run }: Hook): Promise<unknown> => {
       const r = await run(args);
-      await record(entity, orgField, r);
+      await record(entity, orgField, hidden, r);
       return r;
     };
     const delta = async ({ args, query: run }: Hook): Promise<unknown> => {
       const r = await run(args);
-      await record(entity, orgField, r, changedKeys(args));
+      await record(entity, orgField, hidden, r, changedKeys(args));
       return r;
     };
     query[model] = { create: full, update: delta, upsert: full };
