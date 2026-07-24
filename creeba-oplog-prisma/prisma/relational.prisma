@@ -1,0 +1,36 @@
+// Modeles d'infra op-log — connecteurs RELATIONNELS (pg, mysql, sqlite, cockroach).
+// Copier ces 3 modeles dans le schema Prisma de l'app. keyStrategy = "composite".
+
+model SyncOps {
+  id         String   @id @default(uuid(7))
+  hlcWall    BigInt
+  hlcCounter Int
+  nodeId     String
+  actorId    String?
+  orgId      String?
+  entity     String
+  entityId   String
+  kind       String
+  fields     Json
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([orgId, hlcWall, hlcCounter])
+}
+
+model SyncClock {
+  id      String @id @default("singleton")
+  wall    BigInt
+  counter Int
+}
+
+model SyncFieldState {
+  entity     String
+  entityId   String
+  field      String
+  hlcWall    BigInt
+  hlcCounter Int
+  nodeId     String
+
+  @@id([entity, entityId, field])
+}
