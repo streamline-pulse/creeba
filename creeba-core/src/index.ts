@@ -4,11 +4,11 @@
  * belong to the application. No platform-specific dependency, so it can be used
  * from Bun, Node or React Native/Expo.
  *
- * The iroh + mDNS transport (Bun/desktop) is exposed separately to avoid pulling
- * the native binding into mobile bundles:
+ * The iroh + mDNS transport (Bun/desktop) lives in a separate package so the
+ * native binding never reaches mobile/browser bundles:
  *
- *   import { CreebaSync } from "creeba-js";
- *   import { IrohMdnsTransport } from "creeba-js/iroh-mdns";
+ *   import { CreebaSync } from "@streamline-pulse/creeba-core";
+ *   import { IrohMdnsTransport } from "@streamline-pulse/creeba-iroh-mdns";
  */
 export { CreebaSync } from "./core.ts";
 export type { CreebaSyncOptions } from "./core.ts";

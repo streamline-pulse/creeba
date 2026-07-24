@@ -2,9 +2,9 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { BrowserWindow, BrowserView, Updater } from "electrobun/bun";
-import { CreebaSync } from "creeba-js";
-import type { Peer as CreebaPeer } from "creeba-js";
-import { IrohMdnsTransport } from "creeba-js/iroh-mdns";
+import { CreebaSync } from "@streamline-pulse/creeba-core";
+import type { Peer as CreebaPeer } from "@streamline-pulse/creeba-core";
+import { IrohMdnsTransport } from "@streamline-pulse/creeba-iroh-mdns";
 import { ChatDB } from "./db.ts";
 import {
   CHAT_PROTOCOL,

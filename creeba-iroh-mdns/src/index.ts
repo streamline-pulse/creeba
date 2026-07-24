@@ -9,9 +9,14 @@ import {
   type SendStream,
 } from "@number0/iroh";
 import Bonjour from "bonjour-service";
-import { Emitter } from "../emitter.ts";
-import type { SyncTransport, TransportEvents } from "../transport.ts";
-import type { Identity, PeerId, WireFrame } from "../types.ts";
+import {
+  Emitter,
+  type SyncTransport,
+  type TransportEvents,
+  type Identity,
+  type PeerId,
+  type WireFrame,
+} from "@streamline-pulse/creeba-core";
 
 /**
  * iroh-based P2P transport (encrypted QUIC, holepunch + relay fallback) with
