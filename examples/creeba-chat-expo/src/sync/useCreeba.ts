@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { CreebaSync } from "creeba-js";
-import type { Peer, Status, SyncTransport } from "creeba-js";
+import { CreebaSync } from "@streamline-pulse/creeba-core";
+import type { Peer, Status, SyncTransport } from "@streamline-pulse/creeba-core";
 import { SqliteStore } from "./store";
 import { StubTransport } from "./transport";
 import { DEFAULT_ROOM } from "./types";

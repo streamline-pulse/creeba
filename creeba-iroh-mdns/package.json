@@ -1,0 +1,21 @@
+{
+	"name": "@streamline-pulse/creeba-iroh-mdns",
+	"version": "0.1.0",
+	"description": "Creeba iroh + mDNS transport for Bun/Node (desktop & server nodes): encrypted QUIC (holepunch + relay) with serverless mDNS discovery, plus ed25519 identity primitives. Implements @streamline-pulse/creeba-core's SyncTransport. Carries the native binding so the core stays dependency-free.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"files": ["src"],
+	"dependencies": {
+		"@number0/iroh": "^1.0.0",
+		"@streamline-pulse/creeba-core": "link:@streamline-pulse/creeba-core",
+		"bonjour-service": "^1.4.3"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5"
+	}
+}

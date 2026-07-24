@@ -1,7 +1,7 @@
 {
-  "name": "creeba-expo",
+  "name": "@streamline-pulse/creeba-expo",
   "version": "0.1.0",
-  "description": "iroh P2P transport for Expo/React Native: native module (Swift/Kotlin via iroh-ffi) implementing creeba-js's SyncTransport. Interoperates with desktop and Elysia (same ALPN, wire format and mDNS discovery).",
+  "description": "iroh P2P transport for Expo/React Native: native module (Swift/Kotlin via iroh-ffi) implementing @streamline-pulse/creeba-core's SyncTransport. Interoperates with desktop and Elysia (same ALPN, wire format and mDNS discovery).",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "files": [
@@ -38,16 +38,16 @@
     "expo": "*",
     "react": "*",
     "react-native": "*",
-    "creeba-js": "*"
+    "@streamline-pulse/creeba-core": "*"
   },
   "peerDependenciesMeta": {
-    "creeba-js": { "optional": true }
+    "@streamline-pulse/creeba-core": { "optional": true }
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
     "expo": "~57.0.4",
     "expo-modules-core": "~3.0.0",
     "typescript": "~6.0.3",
-    "creeba-js": "link:creeba-js"
+    "@streamline-pulse/creeba-core": "link:@streamline-pulse/creeba-core"
   }
 }

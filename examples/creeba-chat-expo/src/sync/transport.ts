@@ -1,5 +1,5 @@
-import { Emitter } from "creeba-js";
-import type { Identity, PeerId, SyncTransport, TransportEvents, WireFrame } from "creeba-js";
+import { Emitter } from "@streamline-pulse/creeba-core";
+import type { Identity, PeerId, SyncTransport, TransportEvents, WireFrame } from "@streamline-pulse/creeba-core";
 import type { Wire } from "./types";
 
 /**

@@ -7,9 +7,9 @@
  *
  *   CREEBA_DEBUG=1 bun scripts/p2p-smoke.ts
  */
-import { CreebaSync } from "creeba-js";
-import { IrohMdnsTransport } from "creeba-js/iroh-mdns";
-import type { Peer } from "creeba-js";
+import { CreebaSync } from "@streamline-pulse/creeba-core";
+import { IrohMdnsTransport } from "@streamline-pulse/creeba-iroh-mdns";
+import type { Peer } from "@streamline-pulse/creeba-core";
 
 const TOPIC = "smoke-room";
 const DISCOVER_MS = 45_000;

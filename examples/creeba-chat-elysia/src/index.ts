@@ -2,9 +2,9 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { Elysia } from "elysia";
-import { CreebaSync } from "creeba-js";
-import type { Peer as CreebaPeer } from "creeba-js";
-import { IrohMdnsTransport } from "creeba-js/iroh-mdns";
+import { CreebaSync } from "@streamline-pulse/creeba-core";
+import type { Peer as CreebaPeer } from "@streamline-pulse/creeba-core";
+import { IrohMdnsTransport } from "@streamline-pulse/creeba-iroh-mdns";
 import { SqliteStore, type ChatMessage } from "./store.ts";
 
 const ROOM = process.env.CREEBA_ROOM ?? "creeba-chat";
