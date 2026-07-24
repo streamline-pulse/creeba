@@ -81,6 +81,7 @@ export function createOpLog(
     entity: string,
     orgField: string,
     hidden: Set<string>,
+    scalar: Set<string> | null,
     row: unknown,
     changed?: Set<string>
   ): Promise<void> {
@@ -92,7 +93,13 @@ export function createOpLog(
       if (kind === "upsert") {
         const keys = changed ?? new Set(Object.keys(r));
         for (const k of keys)
-          if (!volatile.has(k) && !hidden.has(k) && k in r) fields[k] = r[k];
+          if (
+            !volatile.has(k) &&
+            !hidden.has(k) &&
+            (scalar === null || scalar.has(k)) &&
+            k in r
+          )
+            fields[k] = r[k];
       }
       await oplog.record({
         entity,
@@ -110,14 +117,15 @@ export function createOpLog(
   const query: Record<string, unknown> = {};
   for (const { model, entity, orgField, omit } of config.syncable) {
     const hidden = new Set(omit ?? []);
+    const scalar = scalarFields(base, model);
     const full = async ({ args, query: run }: Hook): Promise<unknown> => {
       const r = await run(args);
-      await record(entity, orgField, hidden, r);
+      await record(entity, orgField, hidden, scalar, r);
       return r;
     };
     const delta = async ({ args, query: run }: Hook): Promise<unknown> => {
       const r = await run(args);
-      await record(entity, orgField, hidden, r, changedKeys(args));
+      await record(entity, orgField, hidden, scalar, r, changedKeys(args));
       return r;
     };
     query[model] = { create: full, update: delta, upsert: full };
@@ -135,6 +143,24 @@ export function createOpLog(
       listener = fn;
     },
   };
+}
+
+/**
+ * Colonnes SCALAIRES d'un modele via les metadonnees Prisma (`delegate.fields`
+ * n'expose que les scalaires : relations exclues, colonnes JSON incluses). null
+ * si indisponible (repli : toutes les cles). Empeche de capturer des champs de
+ * relation (type/parent/children/location…) qui casseraient la projection.
+ */
+function scalarFields(base: PrismaLike, model: string): Set<string> | null {
+  try {
+    const delegateFields = (
+      (base as Record<string, unknown>)[model] as { fields?: object } | undefined
+    )?.fields;
+    const keys = delegateFields ? Object.keys(delegateFields) : [];
+    return keys.length ? new Set(keys) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Champs explicitement ecrits par l'appelant (data/create/update). */
