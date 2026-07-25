@@ -9,6 +9,7 @@ export default defineConfig({
       title: 'Creeba',
       description:
         'Local-first P2P layer for TypeScript apps: pluggable transports (iroh + mDNS), a portable op-log, opaque payloads.',
+      favicon: '/favicon.svg',
       social: [
         {
           icon: 'github',
