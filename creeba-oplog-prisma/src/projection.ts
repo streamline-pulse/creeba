@@ -1,5 +1,5 @@
 import type { Projection } from "@streamline-pulse/creeba-oplog";
-import { type PrismaLike, type PrismaDelegate } from "./prisma_like";
+import { type PrismaLike, type PrismaDelegate } from "./prisma_like.ts";
 
 /**
  * Materialise les ops dans les tables du domaine, adressees par nom d'entite.

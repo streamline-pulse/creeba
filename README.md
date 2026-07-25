@@ -1,56 +1,50 @@
-# creeba
+# Creeba
 
-Bun library: Creeba's P2P sync layer. A **portable core** (identity, presence,
-peers, routing of opaque app payloads) plus **pluggable transports**. Local
-databases stay local — P2P only carries payloads, never the database. The
-message shape and its persistence belong to the application.
+Creeba is a **local-first P2P layer** for TypeScript apps. Local databases stay
+local — the network only carries **opaque app payloads**, never the database.
+The message shape and its persistence belong to the application.
 
-The package lives in **`creeba-js/`** and ships under the name `creeba-js`. The
-demo apps (`examples/`) consume it **by its package name**, like a published
-dependency. Locally (before publishing) they are linked via `bun link` (a direct
-symlink to `creeba-js/`; no tree copy):
+It ships as small, composable packages under the `@streamline-pulse` scope, split
+so that native/ORM dependencies never leak into environments that can't use them
+(a browser or mobile bundle never pulls the iroh native binding; the core never
+pulls Prisma).
 
-```bash
-cd creeba-js && bun link  # registers the "creeba-js" package
-cd ../examples/creeba-chat-electrobun && bun link creeba-js   # (same for creeba-chat-expo, creeba-chat-elysia)
-```
-
-Their `package.json` declares `"creeba-js": "link:creeba-js"` — replace it with a
-version (`"creeba-js": "^0.1.0"`) once the package is published.
+| Package | What it is | Native deps |
+|---|---|---|
+| [`@streamline-pulse/creeba-core`](./creeba-core) | Portable P2P core: identity, presence, peers, routing of opaque payloads over a pluggable `SyncTransport`. | none |
+| [`@streamline-pulse/creeba-iroh-mdns`](./creeba-iroh-mdns) | Bun/Node transport: encrypted QUIC (iroh, holepunch + relay) with **LAN** discovery over mDNS, serverless. + ed25519 identity helpers. | `@number0/iroh` |
+| [`@streamline-pulse/creeba-expo`](./creeba-expo) | Mobile transport (Expo/React Native): native iroh via `iroh-ffi` (Swift/Kotlin), same ALPN + wire format as desktop. | native module |
+| [`@streamline-pulse/creeba-oplog`](./creeba-oplog) | Portable op-log: hybrid logical clock, operation journal, LWW convergence. Persistence-agnostic. | none |
+| [`@streamline-pulse/creeba-oplog-prisma`](./creeba-oplog-prisma) | Prisma binding for the op-log: transparent mutation capture (`$extends`), ready-made `OpStore` + `Projection`. | Prisma (peer) |
 
 ## Layered architecture
 
 ```
-CreebaSync (core, fully portable — no native dependency)
-└── SyncTransport ← P2P network (pluggable)
-      ├── IrohMdnsTransport  (Bun/desktop, Elysia): iroh QUIC + mDNS, serverless
-      └── IrohExpoTransport  (mobile): native iroh-ffi module (Swift/Kotlin), same wire format
+Your app
+├── CreebaSync (creeba-core)          — portable, no native dependency
+│     └── SyncTransport  ← P2P network (pluggable)
+│           ├── IrohMdnsTransport  (creeba-iroh-mdns)  — Bun/desktop/server, LAN
+│           └── IrohExpoTransport  (creeba-expo)       — mobile, same wire format
+└── OpLog (creeba-oplog)              — optional convergence layer (HLC + LWW)
+      ├── OpStore     ← journal persistence (pluggable)
+      └── Projection  ← domain-state writes (pluggable)
+            └── creeba-oplog-prisma   — a ready OpStore + Projection over Prisma
 ```
 
-Persistence is **not** part of the core: each app plugs in its own local store
-(DuckDB on desktop, `expo-sqlite` on mobile, `bun:sqlite` on the server).
+The two layers are independent: use `creeba-core` alone to move payloads, add
+`creeba-oplog` when you need convergent state across nodes. Persistence is never
+part of a core — each app plugs its own store (DuckDB, `bun:sqlite`,
+`expo-sqlite`, Prisma…).
 
-- `creeba-js` (`creeba-js/src/index.ts`): core + interfaces + types. No native dependency → importable from Bun, Node, React Native/Expo.
-- `creeba-js/iroh-mdns` (`creeba-js/src/transports/iroh-mdns.ts`): Bun transport (imports `@number0/iroh` + `bonjour-service`, kept out of the mobile bundle).
-- [`creeba-expo`](./creeba-expo): separate package, native iroh transport for Expo/React Native (Swift + Kotlin via `iroh-ffi`). Interoperates with desktop/Elysia (same ALPN, wire format, mDNS).
+## Install
 
-## Structure
+```bash
+# transport + core (Bun / desktop / server)
+bun add @streamline-pulse/creeba-core @streamline-pulse/creeba-iroh-mdns
 
-```
-creeba-js/                # "creeba-js" package (portable core, published under this name)
-└── src/
-    ├── index.ts          # public exports
-    ├── core.ts           # CreebaSync (portable orchestrator)
-    ├── types.ts          # Identity, Peer, Status, WireFrame
-    ├── emitter.ts        # typed event emitter (no node:events)
-    ├── transport.ts      # SyncTransport interface
-    └── transports/
-        └── iroh-mdns.ts  # iroh + mDNS transport (Bun)
-creeba-expo/              # separate package: native Expo iroh transport (Swift/Kotlin)
-examples/
-├── creeba-chat-electrobun/  # Electrobun + DuckDB (iroh/mDNS transport)
-├── creeba-chat-elysia/      # Elysia (Bun): P2P node + web client (WebSocket)
-└── creeba-chat-expo/        # Expo + expo-sqlite + creeba-expo (native P2P)
+# convergence layer (optional)
+bun add @streamline-pulse/creeba-oplog
+bun add @streamline-pulse/creeba-oplog-prisma   # if you use Prisma
 ```
 
 ## Usage (desktop / Bun)
@@ -59,8 +53,8 @@ The core is generic over the app payload `T`. The app defines its own message
 type and handles persistence itself.
 
 ```ts
-import { CreebaSync } from "creeba-js";
-import { IrohMdnsTransport } from "creeba-js/iroh-mdns";
+import { CreebaSync } from "@streamline-pulse/creeba-core";
+import { IrohMdnsTransport } from "@streamline-pulse/creeba-iroh-mdns";
 
 interface ChatMessage { id: string; userId: string; body: string; ts: number }
 
@@ -109,12 +103,40 @@ Dedup by message `id` (idempotent inserts) makes this robust even if several
 peers answer. A full working reference lives in
 [`examples/creeba-chat-elysia`](./examples/creeba-chat-elysia/src/index.ts).
 
+For **convergent state** (not just a message log), use the op-log layer below
+instead of hand-rolling the merge.
+
+## Convergence with the op-log
+
+`creeba-oplog` turns mutations into an ordered, mergeable journal (hybrid logical
+clock + last-writer-wins), independent of any database. The app implements two
+interfaces — `OpStore` (journal persistence) and `Projection` (domain writes) —
+or plugs in a ready binding. With Prisma, capture is transparent:
+
+```ts
+import { createOpLog } from "@streamline-pulse/creeba-oplog-prisma";
+
+// $extends the client: every write to a syncable entity is journaled,
+// scalar-only (relations dropped), secrets omitted.
+const { client, oplog, projection } = createOpLog(prisma, {
+  nodeId,
+  syncable: [
+    { model: "projects", entity: "Projects", orgField: "groupId" },
+    // …
+  ],
+});
+
+// Feed remote ops in, broadcast local ops out — over creeba-core:
+oplog.onLocalOp((op) => sync.broadcast(op));
+sync.on("data", (op) => oplog.applyRemote(op, projection));
+```
+
 ## Use in an Expo app (mobile)
 
-On mobile the transport is provided by [`creeba-expo`](./creeba-expo), a native
-module (Swift/Kotlin via `iroh-ffi`) that implements the same `SyncTransport`.
-It speaks the same ALPN + wire format as the desktop, so mobile and desktop peers
-interoperate on the LAN.
+On mobile the transport is provided by
+[`@streamline-pulse/creeba-expo`](./creeba-expo), a native module (Swift/Kotlin
+via `iroh-ffi`) that implements the same `SyncTransport`. It speaks the same ALPN
++ wire format as the desktop, so mobile and desktop peers interoperate on the LAN.
 
 > **Requires a [dev build](https://docs.expo.dev/develop/development-builds/introduction/)**
 > — the native module does **not** run in Expo Go.
@@ -122,11 +144,7 @@ interoperate on the LAN.
 ### 1. Install
 
 ```bash
-# published packages
-npx expo install creeba-js creeba-expo
-
-# or, from this monorepo, link them locally
-bun link creeba-js && bun link creeba-expo
+npx expo install @streamline-pulse/creeba-core @streamline-pulse/creeba-expo
 ```
 
 ### 2. Register the config plugin
@@ -138,7 +156,7 @@ permission + Bonjour service and the Android network/multicast permissions:
 {
   "expo": {
     "plugins": [
-      ["creeba-expo", { "localNetworkUsageDescription": "MyApp uses the local network to discover nearby peers." }]
+      ["@streamline-pulse/creeba-expo", { "localNetworkUsageDescription": "MyApp uses the local network to discover nearby peers." }]
     ]
   }
 }
@@ -171,22 +189,15 @@ Use `IrohExpoTransport` exactly like `IrohMdnsTransport` on desktop. The app own
 its message type and its local persistence (e.g. `expo-sqlite`):
 
 ```ts
-import { CreebaSync } from "creeba-js";
-import { IrohExpoTransport } from "creeba-expo";
-
-interface ChatMessage { id: string; userId: string; body: string; ts: number }
+import { CreebaSync } from "@streamline-pulse/creeba-core";
+import { IrohExpoTransport } from "@streamline-pulse/creeba-expo";
 
 const sync = new CreebaSync<ChatMessage>({
   transport: new IrohExpoTransport<ChatMessage>(),
   identity: { userId: "abc", metadata: { name: "alice" } },
   topic: "creeba-chat",
 });
-
-sync.on("data", (message, from) => {/* persist locally + render */});
-sync.on("peers", (peers) => {/* … */});
-
 await sync.start();
-sync.broadcast({ id: "1", userId: "abc", body: "hi", ts: Date.now() });
 ```
 
 Tip: guard the native import so the app still runs in Expo Go / web (falling back
@@ -199,6 +210,18 @@ to a no-op transport), as shown in
 > [`examples/creeba-chat-expo/metro.config.js`](./examples/creeba-chat-expo/metro.config.js)),
 > otherwise you'll hit `PlatformConstants could not be found` at runtime.
 
+## Discovery: LAN today, WAN next
+
+Discovery in `creeba-iroh-mdns` is **mDNS = local network only** — it does not
+cross routers. The iroh **connection** itself already traverses the internet
+(QUIC holepunch + public relays) *once you have a peer's ticket*; what mDNS
+provides is finding that ticket on the LAN.
+
+Internet (WAN) rendezvous is on the roadmap as a **separate** discovery package
+(e.g. `creeba-iroh-dns` / bootstrap-ticket) layered over a shared `creeba-iroh`
+transport core, so `creeba-iroh-mdns` stays the LAN variant and the public API is
+unchanged.
+
 ## Writing a transport
 
 Implement `SyncTransport`: `start()` (returns the local id), `join(topic)`,
@@ -207,12 +230,36 @@ Implement `SyncTransport`: `start()` (returns the local id), `join(topic)`,
 transport ignores frame semantics (`hello`/`data`): it carries frames, the core
 does the rest.
 
+## Build & publish
+
+Each package builds to `dist/` (ESM `.js` + `.d.ts` + source maps) via `tsc`
+(`rewriteRelativeImportExtensions` keeps `.ts` specifiers in source and emits
+`.js`; a small post-step aligns the declaration files). `publishConfig.access` is
+`public` on every package.
+
+```bash
+# build (respect dependency order: core → oplog → oplog-prisma → iroh-mdns)
+for p in creeba-core creeba-oplog creeba-oplog-prisma creeba-iroh-mdns; do (cd $p && bun run build); done
+
+# publish (core first, so dependents resolve its published types)
+cd creeba-core && npm publish
+cd ../creeba-oplog && npm publish
+cd ../creeba-oplog-prisma && npm publish
+cd ../creeba-iroh-mdns && npm publish
+```
+
+`prepublishOnly` rebuilds automatically. During local development the packages
+are linked (`bun link`) so dependents resolve each other from disk; published
+dependents reference concrete versions (`^0.1.0`).
+
 ## Dev & test
 
 ```bash
-cd creeba-js && bun install                   # library dependencies
-
 # 2-node P2P test (mDNS discovery + iroh exchange), from the electrobun example:
-cd ../examples/creeba-chat-electrobun
+cd examples/creeba-chat-electrobun
 CREEBA_DEBUG=1 bun scripts/p2p-smoke.ts
 ```
+
+## License
+
+MIT © Streamline Pulse
