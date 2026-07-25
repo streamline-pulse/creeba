@@ -128,7 +128,22 @@ export function createOpLog(
       await record(entity, orgField, hidden, scalar, r, changedKeys(args));
       return r;
     };
-    query[model] = { create: full, update: delta, upsert: full };
+    // Créations en lot : createManyAndReturn renvoie les lignes → capture par
+    // élément. createMany (sans return) ne donne que { count } : rien à capturer.
+    const many = async ({ args, query: run }: Hook): Promise<unknown> => {
+      const rows = await run(args);
+      if (Array.isArray(rows))
+        for (const row of rows)
+          await record(entity, orgField, hidden, scalar, row);
+      return rows;
+    };
+    query[model] = {
+      create: full,
+      createMany: many,
+      createManyAndReturn: many,
+      update: delta,
+      upsert: full,
+    };
   }
 
   const client = base.$extends({ query });
