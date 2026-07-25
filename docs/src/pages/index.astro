@@ -1,0 +1,330 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '') + '/'
+const docs = `${base}getting-started/`
+const github = 'https://github.com/streamline-pulse/creeba'
+const install = 'bun add @streamline-pulse/creeba-core'
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Creeba — local-first P2P for TypeScript</title>
+    <meta
+      name="description"
+      content="Creeba keeps your app and its data in sync across devices — peer to peer, with or without internet, and with no server. Pluggable transports, a portable op-log, opaque payloads."
+    />
+    <link rel="icon" href={`${base}favicon.svg`} />
+  </head>
+  <body>
+    <div class="page">
+      <header class="nav">
+        <a class="brand" href={base}><span class="brand-dot"></span> CREEBA</a>
+        <nav class="nav-links">
+          <a href={docs}>Docs</a>
+          <a href={github} target="_blank" rel="noreferrer">GitHub</a>
+          <a class="btn btn-primary btn-sm" href={docs}>Get started</a>
+        </nav>
+      </header>
+
+      <main class="hero">
+        <div class="hero-copy">
+          <span class="pill"><span class="pill-dot"></span> local-first · peer-to-peer</span>
+          <h1 class="title">Stays in sync.<br /><span class="grad">Even offline.</span></h1>
+          <p class="lede">
+            Creeba keeps your app and its data in agreement across every device —
+            directly peer to peer. No server in the middle, no internet required.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href={docs}>Get started →</a>
+            <a class="btn btn-ghost" href={`${base}guides/core/`}>How it works</a>
+          </div>
+          <p class="install"><code><span class="dollar">$</span> {install}</code></p>
+        </div>
+
+        <!-- Live sync diagram -->
+        <div class="demo" aria-hidden="true">
+          <div class="demo-stage">
+            <article class="peer" id="peerA">
+              <div class="peer-head"><span class="peer-dot"></span> Device A</div>
+              <ul class="log" id="logA"></ul>
+            </article>
+
+            <div class="wire">
+              <svg viewBox="0 0 120 200" preserveAspectRatio="none" class="wire-svg">
+                <line x1="0" y1="52" x2="120" y2="52" class="wire-line" />
+                <g class="cloud" id="cloud">
+                  <circle cx="60" cy="26" r="15" class="cloud-body" />
+                  <line x1="60" y1="41" x2="60" y2="50" class="cloud-stem" />
+                </g>
+              </svg>
+              <span class="packet" id="packet"></span>
+              <span class="cloud-x" id="cloudX">no server</span>
+            </div>
+
+            <article class="peer" id="peerB">
+              <div class="peer-head"><span class="peer-dot"></span> Device B</div>
+              <ul class="log" id="logB"></ul>
+            </article>
+          </div>
+
+          <div class="demo-bar">
+            <button class="toggle" id="toggle" role="switch" aria-checked="true">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-label" id="toggleLabel">internet: on</span>
+            </button>
+            <span class="status" id="status"><span class="status-dot"></span> synced peer-to-peer</span>
+          </div>
+        </div>
+      </main>
+
+      <section class="features">
+        <article class="card">
+          <div class="card-ic">⇄</div>
+          <h3>Pluggable transports</h3>
+          <p>Encrypted QUIC over iroh with serverless mDNS discovery on the LAN. Swap the transport, keep the core.</p>
+        </article>
+        <article class="card">
+          <div class="card-ic">⧗</div>
+          <h3>Portable op-log</h3>
+          <p>A hybrid logical clock and last-writer-wins convergence — mergeable state across nodes, no database lock-in.</p>
+        </article>
+        <article class="card">
+          <div class="card-ic">◆</div>
+          <h3>Opaque payloads</h3>
+          <p>Your database stays local. The network carries only your app's payloads — never the database itself.</p>
+        </article>
+      </section>
+
+      <footer class="foot">
+        <span>MIT © Streamline Pulse</span>
+        <span class="foot-links">
+          <a href={docs}>Docs</a>
+          <a href={github} target="_blank" rel="noreferrer">GitHub</a>
+        </span>
+      </footer>
+    </div>
+
+    <style is:global>
+      :root {
+        --bg: #080c0d;
+        --panel: #0d1416;
+        --ink: #e9f1f0;
+        --muted: #8ba0a0;
+        --line: rgba(120, 200, 195, 0.16);
+        --line-soft: rgba(120, 200, 195, 0.08);
+        --accent: #5fe3c9;
+        --accent-2: #57c3ff;
+        --danger: #ff9d7a;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        background:
+          radial-gradient(60rem 40rem at 78% -10%, rgba(87, 195, 255, 0.06), transparent 60%),
+          radial-gradient(50rem 36rem at 10% 0%, rgba(95, 227, 201, 0.07), transparent 55%),
+          var(--bg);
+        color: var(--ink);
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      a { color: inherit; text-decoration: none; }
+      .page { max-width: 1140px; margin: 0 auto; padding: 0 1.5rem; }
+
+      .nav { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0; }
+      .brand { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 700; letter-spacing: 0.3em; font-size: 0.9rem; }
+      .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+      .nav-links { display: flex; align-items: center; gap: 1.6rem; }
+      .nav-links a { color: var(--muted); font-size: 0.95rem; transition: color 0.15s; }
+      .nav-links a:hover { color: var(--ink); }
+
+      .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: 600; transition: transform 0.12s, background 0.15s, border-color 0.15s; white-space: nowrap; }
+      .btn:active { transform: translateY(1px); }
+      .btn-sm { padding: 0.5rem 0.95rem; font-size: 0.9rem; }
+      .btn-primary { background: var(--accent); color: #04211c; }
+      .btn-primary:hover { background: #7bf0d9; }
+      .btn-ghost { padding: 0.8rem 1.35rem; border: 1px solid var(--line); color: var(--ink); background: rgba(255,255,255,0.02); }
+      .btn-ghost:hover { border-color: rgba(120, 200, 195, 0.4); }
+
+      /* ---- hero: split ---- */
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        gap: 3.5rem;
+        align-items: center;
+        padding: 5vh 0 4rem;
+      }
+      .pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.9rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.8rem; color: var(--muted); background: rgba(255,255,255,0.02); }
+      .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+      .title { margin: 1.5rem 0 0; font-size: clamp(2.6rem, 5.5vw, 4.4rem); line-height: 1.0; letter-spacing: -0.03em; font-weight: 800; }
+      .grad { background: linear-gradient(100deg, var(--accent) 5%, var(--accent-2) 95%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .lede { margin: 1.4rem 0 0; max-width: 32rem; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.15rem); }
+      .cta { display: flex; gap: 0.85rem; margin-top: 2rem; flex-wrap: wrap; }
+      .cta .btn-primary { padding: 0.8rem 1.5rem; font-size: 1rem; }
+      .install { margin-top: 1.6rem; }
+      .install code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9rem; color: var(--muted); }
+      .install .dollar { color: var(--accent); margin-right: 0.4rem; }
+
+      /* ---- live diagram ---- */
+      .demo {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008));
+        padding: 1.5rem;
+        box-shadow: 0 40px 80px -50px rgba(0,0,0,0.9);
+      }
+      .demo-stage { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: stretch; gap: 0; }
+      .peer { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 0.85rem; min-height: 190px; }
+      .peer-head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); font-weight: 600; margin-bottom: 0.7rem; letter-spacing: 0.02em; }
+      .peer-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+      .log { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+      .log li {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.76rem;
+        color: var(--ink);
+        background: rgba(120, 200, 195, 0.06);
+        border: 1px solid var(--line-soft);
+        border-radius: 7px;
+        padding: 0.32rem 0.5rem;
+        display: flex; justify-content: space-between; gap: 0.5rem;
+        animation: pop 0.35s ease;
+      }
+      .log li .amt { color: var(--accent); }
+      .log li.fresh { border-color: var(--accent); background: rgba(95, 227, 201, 0.14); }
+      @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+      .wire { position: relative; }
+      .wire-svg { width: 100%; height: 100%; position: absolute; inset: 0; }
+      .wire-line { stroke: var(--line); stroke-width: 2; stroke-dasharray: 4 5; }
+      .cloud-body, .cloud-stem { stroke: var(--muted); stroke-width: 2; fill: none; transition: opacity 0.3s, stroke 0.3s; }
+      .cloud.off .cloud-body, .cloud.off .cloud-stem { opacity: 0.15; stroke: var(--danger); }
+      .cloud-x { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 0.62rem; color: var(--danger); opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+      .cloud-x.show { opacity: 1; }
+      .packet {
+        position: absolute; top: 52px; left: 0;
+        width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
+        background: var(--accent); box-shadow: 0 0 12px var(--accent);
+        opacity: 0;
+      }
+
+      .demo-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--line-soft); }
+      .toggle { display: inline-flex; align-items: center; gap: 0.6rem; background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.85rem; }
+      .toggle-track { width: 38px; height: 22px; border-radius: 999px; background: rgba(95, 227, 201, 0.35); position: relative; transition: background 0.2s; }
+      .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); transition: transform 0.2s, background 0.2s; }
+      .toggle[aria-checked="false"] .toggle-track { background: rgba(255,255,255,0.1); }
+      .toggle[aria-checked="false"] .toggle-thumb { transform: translateX(16px); background: var(--danger); }
+      .status { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; color: var(--accent); }
+      .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 1.6s ease-in-out infinite; }
+      @keyframes blink { 50% { opacity: 0.35; } }
+
+      /* ---- features ---- */
+      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 1rem 0 5rem; }
+      .card { border: 1px solid var(--line); border-radius: 16px; padding: 1.5rem; background: rgba(255,255,255,0.02); transition: border-color 0.15s, transform 0.15s; }
+      .card:hover { border-color: rgba(120, 200, 195, 0.32); transform: translateY(-3px); }
+      .card-ic { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: rgba(95, 227, 201, 0.1); color: var(--accent); font-size: 1.1rem; margin-bottom: 0.9rem; }
+      .card h3 { font-size: 1.05rem; margin-bottom: 0.45rem; }
+      .card p { color: var(--muted); font-size: 0.92rem; }
+
+      .foot { display: flex; align-items: center; justify-content: space-between; padding: 2rem 0 3rem; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 0.9rem; }
+      .foot-links { display: flex; gap: 1.4rem; }
+      .foot-links a:hover { color: var(--ink); }
+
+      @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; gap: 2.5rem; }
+        .features { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 560px) {
+        .nav-links a:not(.btn) { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .status-dot, .log li { animation: none; }
+        html { scroll-behavior: auto; }
+      }
+    </style>
+
+    <script>
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+      const logA = document.getElementById('logA')!
+      const logB = document.getElementById('logB')!
+      const packet = document.getElementById('packet')!
+      const wire = packet.parentElement as HTMLElement
+      const cloud = document.getElementById('cloud')!
+      const cloudX = document.getElementById('cloudX')!
+      const toggle = document.getElementById('toggle')!
+      const toggleLabel = document.getElementById('toggleLabel')!
+      const status = document.getElementById('status')!
+
+      const KINDS = ['invoice', 'payment', 'order', 'note', 'entry']
+      const MAX = 4
+      let online = true
+      let n = 0x2f10
+
+      function hex() { n += 1 + Math.floor(Math.random() * 12); return n.toString(16).slice(-4) }
+      function amount() { return (Math.random() * 900 + 20).toFixed(2) }
+
+      function rowHTML(kind: string, id: string, amt: string) {
+        return `<span>${kind} #${id}</span><span class="amt">€${amt}</span>`
+      }
+
+      function trim(ul: HTMLElement) {
+        while (ul.children.length > MAX) ul.removeChild(ul.firstElementChild!)
+      }
+
+      function addRow(ul: HTMLElement, html: string, fresh = false) {
+        const li = document.createElement('li')
+        li.innerHTML = html
+        if (fresh) { li.classList.add('fresh'); setTimeout(() => li.classList.remove('fresh'), 900) }
+        ul.appendChild(li)
+        trim(ul)
+      }
+
+      function sendPacket(toRight: boolean, onArrive: () => void) {
+        if (reduce) { onArrive(); return }
+        const w = wire.clientWidth
+        packet.animate(
+          [
+            { transform: `translateX(${toRight ? 0 : w}px)`, opacity: 0 },
+            { opacity: 1, offset: 0.15 },
+            { opacity: 1, offset: 0.85 },
+            { transform: `translateX(${toRight ? w : 0}px)`, opacity: 0 },
+          ],
+          { duration: 900, easing: 'cubic-bezier(.4,0,.2,1)' },
+        )
+        setTimeout(onArrive, 720)
+      }
+
+      function tick() {
+        const toRight = Math.random() > 0.5
+        const src = toRight ? logA : logB
+        const dst = toRight ? logB : logA
+        const kind = KINDS[Math.floor(Math.random() * KINDS.length)]
+        const html = rowHTML(kind, hex(), amount())
+        addRow(src, html, true)
+        sendPacket(toRight, () => addRow(dst, html, true))
+      }
+
+      function setOnline(v: boolean) {
+        online = v
+        toggle.setAttribute('aria-checked', String(v))
+        cloud.classList.toggle('off', !v)
+        cloudX.classList.toggle('show', !v)
+        toggleLabel.textContent = v ? 'internet: on' : 'internet: off'
+        status.innerHTML = v
+          ? '<span class="status-dot"></span> synced peer-to-peer'
+          : '<span class="status-dot"></span> still syncing — no server'
+      }
+
+      toggle.addEventListener('click', () => setOnline(!online))
+
+      // Seed both sides in agreement, then keep them converging.
+      for (let i = 0; i < 3; i++) {
+        const html = rowHTML(KINDS[i % KINDS.length], hex(), amount())
+        addRow(logA, html); addRow(logB, html)
+      }
+      setInterval(tick, 2100)
+    </script>
+  </body>
+</html>
