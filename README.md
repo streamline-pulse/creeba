@@ -11,11 +11,11 @@ pulls Prisma).
 
 | Package | What it is | Native deps |
 |---|---|---|
-| [`@streamline-pulse/creeba-core`](./creeba-core) | Portable P2P core: identity, presence, peers, routing of opaque payloads over a pluggable `SyncTransport`. | none |
-| [`@streamline-pulse/creeba-iroh-mdns`](./creeba-iroh-mdns) | Bun/Node transport: encrypted QUIC (iroh, holepunch + relay) with **LAN** discovery over mDNS, serverless. + ed25519 identity helpers. | `@number0/iroh` |
-| [`@streamline-pulse/creeba-expo`](./creeba-expo) | Mobile transport (Expo/React Native): native iroh via `iroh-ffi` (Swift/Kotlin), same ALPN + wire format as desktop. | native module |
-| [`@streamline-pulse/creeba-oplog`](./creeba-oplog) | Portable op-log: hybrid logical clock, operation journal, LWW convergence. Persistence-agnostic. | none |
-| [`@streamline-pulse/creeba-oplog-prisma`](./creeba-oplog-prisma) | Prisma binding for the op-log: transparent mutation capture (`$extends`), ready-made `OpStore` + `Projection`. | Prisma (peer) |
+| [`@streamline-pulse/creeba-core`](./packages/core) | Portable P2P core: identity, presence, peers, routing of opaque payloads over a pluggable `SyncTransport`. | none |
+| [`@streamline-pulse/creeba-iroh-mdns`](./packages/iroh-mdns) | Bun/Node transport: encrypted QUIC (iroh, holepunch + relay) with **LAN** discovery over mDNS, serverless. + ed25519 identity helpers. | `@number0/iroh` |
+| [`@streamline-pulse/creeba-expo`](./packages/expo) | Mobile transport (Expo/React Native): native iroh via `iroh-ffi` (Swift/Kotlin), same ALPN + wire format as desktop. | native module |
+| [`@streamline-pulse/creeba-oplog`](./packages/oplog) | Portable op-log: hybrid logical clock, operation journal, LWW convergence. Persistence-agnostic. | none |
+| [`@streamline-pulse/creeba-oplog-prisma`](./packages/oplog-prisma) | Prisma binding for the op-log: transparent mutation capture (`$extends`), ready-made `OpStore` + `Projection`. | Prisma (peer) |
 
 ## Layered architecture
 
@@ -134,7 +134,7 @@ sync.on("data", (op) => oplog.applyRemote(op, projection));
 ## Use in an Expo app (mobile)
 
 On mobile the transport is provided by
-[`@streamline-pulse/creeba-expo`](./creeba-expo), a native module (Swift/Kotlin
+[`@streamline-pulse/creeba-expo`](./packages/expo), a native module (Swift/Kotlin
 via `iroh-ffi`) that implements the same `SyncTransport`. It speaks the same ALPN
 + wire format as the desktop, so mobile and desktop peers interoperate on the LAN.
 
@@ -230,27 +230,30 @@ Implement `SyncTransport`: `start()` (returns the local id), `join(topic)`,
 transport ignores frame semantics (`hello`/`data`): it carries frames, the core
 does the rest.
 
-## Build & publish
+## Monorepo, build & publish
+
+This is a Bun-workspace monorepo (`packages/*` + `examples/*`) with a shared
+dependency **catalog** and coordinated versioning via
+[changesets](https://github.com/changesets/changesets). Internal deps use the
+`workspace:*` protocol (rewritten to the concrete version at publish).
 
 Each package builds to `dist/` (ESM `.js` + `.d.ts` + source maps) via `tsc`
 (`rewriteRelativeImportExtensions` keeps `.ts` specifiers in source and emits
-`.js`; a small post-step aligns the declaration files). `publishConfig.access` is
-`public` on every package.
+`.js`; `scripts/fix-dts.mjs` aligns the declaration files). `publishConfig.access`
+is `public` on every package.
 
 ```bash
-# build (respect dependency order: core → oplog → oplog-prisma → iroh-mdns)
-for p in creeba-core creeba-oplog creeba-oplog-prisma creeba-iroh-mdns; do (cd $p && bun run build); done
+bun install            # one install links the whole workspace
+bun run build          # builds all publishable packages (topological order)
 
-# publish (core first, so dependents resolve its published types)
-cd creeba-core && npm publish
-cd ../creeba-oplog && npm publish
-cd ../creeba-oplog-prisma && npm publish
-cd ../creeba-iroh-mdns && npm publish
+# record a version bump, then let CI open a release PR + publish on merge:
+bun run changeset
 ```
 
-`prepublishOnly` rebuilds automatically. During local development the packages
-are linked (`bun link`) so dependents resolve each other from disk; published
-dependents reference concrete versions (`^0.1.0`).
+Publishing is automated by `.github/workflows/release.yml` (changesets action):
+on merge to `main` it runs `bun run version-packages` then `bun run release`
+(`scripts/release.mjs` publishes only what isn't already on the registry, deps
+first). A manual publish is `bun run release` after `bun run build`.
 
 ## Dev & test
 

@@ -4,6 +4,13 @@
 	"description": "Prisma binding for @streamline-pulse/creeba-oplog: transparent mutation capture ($extends), a ready-made OpStore and Projection. One schema covers relational connectors (pg/mysql/sqlite/cockroach); a Mongo variant (synthetic key) is provided. The app only declares its syncable entities.",
 	"license": "MIT",
 	"type": "module",
+	"keywords": [
+		"op-log",
+		"prisma",
+		"local-first",
+		"sync",
+		"creeba"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -16,22 +23,32 @@
 	"files": [
 		"dist",
 		"src",
-		"prisma"
+		"prisma",
+		"LICENSE"
 	],
 	"sideEffects": false,
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../scripts/fix-dts.mjs dist",
-		"prepublishOnly": "bun run build"
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-dts.mjs dist",
+		"prepublishOnly": "cp ../../LICENSE . && bun run build"
 	},
 	"peerDependencies": {
-		"@streamline-pulse/creeba-oplog": "^0.1.0"
+		"@streamline-pulse/creeba-oplog": "workspace:*"
 	},
 	"devDependencies": {
-		"@streamline-pulse/creeba-oplog": "link:../creeba-oplog",
-		"@types/bun": "latest",
-		"typescript": "^5"
+		"@types/bun": "catalog:",
+		"typescript": "catalog:",
+		"@streamline-pulse/creeba-oplog": "workspace:*"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/streamline-pulse/creeba.git",
+		"directory": "packages/oplog-prisma"
+	},
+	"homepage": "https://github.com/streamline-pulse/creeba/tree/main/packages/oplog-prisma#readme",
+	"bugs": {
+		"url": "https://github.com/streamline-pulse/creeba/issues"
 	}
 }

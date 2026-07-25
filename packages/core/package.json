@@ -4,6 +4,13 @@
 	"description": "Portable Creeba P2P core: generic presence, peers and routing of opaque app payloads over a pluggable SyncTransport. No native dependency — usable from Bun, Node, browser or React Native. Message shape and persistence belong to the application.",
 	"license": "MIT",
 	"type": "module",
+	"keywords": [
+		"p2p",
+		"local-first",
+		"sync",
+		"peer-to-peer",
+		"creeba"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -15,18 +22,28 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
-		"src"
+		"src",
+		"LICENSE"
 	],
 	"sideEffects": false,
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../scripts/fix-dts.mjs dist",
-		"prepublishOnly": "bun run build"
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-dts.mjs dist",
+		"prepublishOnly": "cp ../../LICENSE . && bun run build"
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"typescript": "^5"
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/streamline-pulse/creeba.git",
+		"directory": "packages/core"
+	},
+	"homepage": "https://github.com/streamline-pulse/creeba/tree/main/packages/core#readme",
+	"bugs": {
+		"url": "https://github.com/streamline-pulse/creeba/issues"
 	}
 }
