@@ -4,6 +4,14 @@
 	"description": "Creeba iroh + mDNS transport for Bun/Node (desktop & server nodes): encrypted QUIC (holepunch + relay) with serverless mDNS discovery, plus ed25519 identity primitives. Implements @streamline-pulse/creeba-core's SyncTransport. Carries the native binding so the core stays dependency-free.",
 	"license": "MIT",
 	"type": "module",
+	"keywords": [
+		"p2p",
+		"iroh",
+		"mdns",
+		"quic",
+		"transport",
+		"creeba"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -15,23 +23,33 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
-		"src"
+		"src",
+		"LICENSE"
 	],
 	"sideEffects": false,
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../scripts/fix-dts.mjs dist",
-		"prepublishOnly": "bun run build"
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-dts.mjs dist",
+		"prepublishOnly": "cp ../../LICENSE . && bun run build"
 	},
 	"dependencies": {
-		"@number0/iroh": "^1.0.0",
-		"@streamline-pulse/creeba-core": "^0.1.0",
-		"bonjour-service": "^1.4.3"
+		"@number0/iroh": "catalog:",
+		"@streamline-pulse/creeba-core": "workspace:*",
+		"bonjour-service": "catalog:"
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"typescript": "^5"
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/streamline-pulse/creeba.git",
+		"directory": "packages/iroh-mdns"
+	},
+	"homepage": "https://github.com/streamline-pulse/creeba/tree/main/packages/iroh-mdns#readme",
+	"bugs": {
+		"url": "https://github.com/streamline-pulse/creeba/issues"
 	}
 }

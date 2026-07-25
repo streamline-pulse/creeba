@@ -4,6 +4,14 @@
 	"description": "Portable op-log for local-first apps: hybrid logical clock, operation journal and LWW convergence. Persistence-agnostic — the app plugs an OpStore and a Projection (Prisma, SQLite, Drizzle, raw SQL…). No native or ORM dependency. Pairs with @streamline-pulse/creeba-core for P2P transport.",
 	"license": "MIT",
 	"type": "module",
+	"keywords": [
+		"op-log",
+		"crdt",
+		"local-first",
+		"hybrid-logical-clock",
+		"lww",
+		"creeba"
+	],
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -15,18 +23,28 @@
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
-		"src"
+		"src",
+		"LICENSE"
 	],
 	"sideEffects": false,
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../scripts/fix-dts.mjs dist",
-		"prepublishOnly": "bun run build"
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-dts.mjs dist",
+		"prepublishOnly": "cp ../../LICENSE . && bun run build"
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"typescript": "^5"
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/streamline-pulse/creeba.git",
+		"directory": "packages/oplog"
+	},
+	"homepage": "https://github.com/streamline-pulse/creeba/tree/main/packages/oplog#readme",
+	"bugs": {
+		"url": "https://github.com/streamline-pulse/creeba/issues"
 	}
 }

@@ -1,0 +1,34 @@
+{
+  "name": "creeba",
+  "private": true,
+  "type": "module",
+  "workspaces": {
+    "packages": [
+      "packages/*",
+      "examples/*"
+    ],
+    "catalog": {
+      "typescript": "^5",
+      "@types/bun": "latest",
+      "@number0/iroh": "^1.0.0",
+      "bonjour-service": "^1.4.3"
+    }
+  },
+  "scripts": {
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/oplog build && bun run --cwd packages/oplog-prisma build && bun run --cwd packages/iroh-mdns build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "changeset": "changeset",
+    "version-packages": "changeset version && rm -f bun.lock && bun install",
+    "release": "bun run build && bun scripts/release.mjs"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.9",
+    "@eslint/js": "^9.15.0",
+    "@types/bun": "latest",
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.15.0"
+  }
+}

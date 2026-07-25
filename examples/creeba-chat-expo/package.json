@@ -27,9 +27,8 @@
     "react-native-screens": "4.25.2",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.0",
-    "@streamline-pulse/creeba-core": "link:@streamline-pulse/creeba-core",
-    "@streamline-pulse/creeba-expo": "link:@streamline-pulse/creeba-expo",
-    "creeba-expo": "link:creeba-expo"
+    "@streamline-pulse/creeba-core": "workspace:*",
+    "@streamline-pulse/creeba-expo": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

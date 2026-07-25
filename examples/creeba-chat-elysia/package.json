@@ -12,8 +12,8 @@
     "@number0/iroh": "^1.0.0",
     "bonjour-service": "^1.4.3",
     "elysia": "latest",
-    "@streamline-pulse/creeba-core": "link:@streamline-pulse/creeba-core",
-    "@streamline-pulse/creeba-iroh-mdns": "link:@streamline-pulse/creeba-iroh-mdns"
+    "@streamline-pulse/creeba-core": "workspace:*",
+    "@streamline-pulse/creeba-iroh-mdns": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest"

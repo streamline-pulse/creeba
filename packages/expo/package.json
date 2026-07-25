@@ -38,16 +38,18 @@
     "expo": "*",
     "react": "*",
     "react-native": "*",
-    "@streamline-pulse/creeba-core": "*"
+    "@streamline-pulse/creeba-core": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@streamline-pulse/creeba-core": { "optional": true }
+    "@streamline-pulse/creeba-core": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
     "expo": "~57.0.4",
     "expo-modules-core": "~3.0.0",
     "typescript": "~6.0.3",
-    "@streamline-pulse/creeba-core": "link:@streamline-pulse/creeba-core"
+    "@streamline-pulse/creeba-core": "workspace:*"
   }
 }
