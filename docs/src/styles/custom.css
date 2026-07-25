@@ -67,17 +67,6 @@ header.header {
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-size: 0.92rem;
-  gap: 0.55rem;
-}
-/* brand dot before the wordmark */
-.site-title::before {
-  content: '';
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--sl-color-text-accent);
-  box-shadow: 0 0 12px var(--sl-color-text-accent);
-  flex: none;
 }
 
 /* ---- Sidebar ---- */
