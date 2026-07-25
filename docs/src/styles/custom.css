@@ -1,11 +1,177 @@
+/* Creeba — Starlight theme (matches the landing: dark, teal accent, refined). */
+
 :root {
-  --sl-color-accent-low: #d9f0f1;
-  --sl-color-accent: #328f97;
-  --sl-color-accent-high: #1d5a60;
+  --sl-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --sl-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --sl-content-width: 47rem;
+  --sl-nav-height: 4.2rem;
+  --sl-sidebar-width: 17.5rem;
 }
 
+/* ---- Dark palette (primary) ---- */
+:root,
 :root[data-theme='dark'] {
-  --sl-color-accent-low: #123a3e;
-  --sl-color-accent: #4fb8b2;
-  --sl-color-accent-high: #bfe8e5;
+  --sl-color-accent-low: #10312f;
+  --sl-color-accent: #3bbfa6;
+  --sl-color-accent-high: #bdeee2;
+  --sl-color-white: #eef5f4;
+  --sl-color-gray-1: #dde7e5;
+  --sl-color-gray-2: #b7c7c5;
+  --sl-color-gray-3: #8ba0a0;
+  --sl-color-gray-4: #566a6a;
+  --sl-color-gray-5: #2c3838;
+  --sl-color-gray-6: #161d1e;
+  --sl-color-gray-7: #10161700;
+  --sl-color-black: #080c0d;
+
+  --sl-color-bg: #080c0d;
+  --sl-color-bg-nav: color-mix(in srgb, #080c0d 78%, transparent);
+  --sl-color-bg-sidebar: #0a0f10;
+  --sl-color-bg-inline-code: rgba(120, 200, 195, 0.1);
+  --sl-color-hairline: rgba(120, 200, 195, 0.09);
+  --sl-color-hairline-light: rgba(120, 200, 195, 0.14);
+  --sl-color-hairline-shade: rgba(120, 200, 195, 0.06);
+  --sl-color-text-accent: #5fe3c9;
+  --sl-color-text: #c8d6d4;
 }
+
+/* ---- Light palette (kept tasteful) ---- */
+:root[data-theme='light'] {
+  --sl-color-accent-low: #d3efe9;
+  --sl-color-accent: #1d7a6c;
+  --sl-color-accent-high: #0c352f;
+  --sl-color-bg: #fbfdfc;
+  --sl-color-bg-sidebar: #f4f8f7;
+  --sl-color-bg-nav: color-mix(in srgb, #fbfdfc 78%, transparent);
+  --sl-color-hairline: rgba(20, 90, 82, 0.12);
+  --sl-color-text-accent: #147a6c;
+}
+
+/* Ambient depth behind the page, like the landing. */
+body {
+  background:
+    radial-gradient(60rem 40rem at 100% -10%, rgba(87, 195, 255, 0.05), transparent 55%),
+    radial-gradient(46rem 34rem at 0% 0%, rgba(95, 227, 201, 0.05), transparent 55%),
+    var(--sl-color-bg);
+}
+
+/* ---- Top nav ---- */
+header.header {
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+.site-title {
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.92rem;
+  gap: 0.55rem;
+}
+/* brand dot before the wordmark */
+.site-title::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sl-color-text-accent);
+  box-shadow: 0 0 12px var(--sl-color-text-accent);
+  flex: none;
+}
+
+/* ---- Sidebar ---- */
+.sidebar-pane {
+  border-inline-end: 1px solid var(--sl-color-hairline);
+  background: var(--sl-color-bg-sidebar);
+}
+.sidebar-content .group-label > span,
+.sidebar-content summary .group-label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--sl-color-gray-4);
+}
+.sidebar-content a {
+  border-radius: 8px;
+  color: var(--sl-color-gray-2);
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-content a:hover {
+  background: rgba(120, 200, 195, 0.06);
+  color: var(--sl-color-white);
+}
+/* active item = filled teal-tint pill */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover {
+  background: rgba(95, 227, 201, 0.12);
+  color: var(--sl-color-text-accent);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(95, 227, 201, 0.22);
+}
+
+/* ---- Content typography ---- */
+.sl-markdown-content {
+  line-height: 1.7;
+}
+.content-panel h1,
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.sl-markdown-content h1 { font-size: clamp(2rem, 4vw, 2.7rem); }
+.sl-markdown-content h2 {
+  margin-top: 2.4rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+.sl-markdown-content a {
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--sl-color-text-accent) 45%, transparent);
+}
+.sl-markdown-content a:hover { text-decoration-color: var(--sl-color-text-accent); }
+
+/* Page eyebrow (e.g. GETTING STARTED) */
+.content-panel .sl-flex > p:first-child,
+.hero-eyebrow { color: var(--sl-color-gray-4); }
+
+/* ---- Inline + block code ---- */
+.sl-markdown-content code:not(:where(.expressive-code *)) {
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 6px;
+  padding: 0.12em 0.4em;
+  font-size: 0.86em;
+  color: var(--sl-color-accent-high);
+}
+.expressive-code .frame {
+  border-radius: 12px;
+  border: 1px solid var(--sl-color-hairline);
+  box-shadow: 0 24px 48px -34px rgba(0, 0, 0, 0.85);
+}
+
+/* ---- Callouts / asides ---- */
+.starlight-aside {
+  border-radius: 10px;
+  border: 1px solid var(--sl-color-hairline);
+  border-inline-start-width: 3px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.starlight-aside--note { border-inline-start-color: var(--sl-color-text-accent); }
+.starlight-aside--tip { border-inline-start-color: #57c3ff; }
+.starlight-aside--caution { border-inline-start-color: #ffcf70; }
+.starlight-aside--danger { border-inline-start-color: #ff9d7a; }
+
+/* Buttons (Starlight <LinkButton>, hero actions) */
+.sl-link-button.primary {
+  background: var(--sl-color-text-accent);
+  color: #04211c;
+  border-radius: 10px;
+}
+.sl-link-button.primary:hover { background: #7bf0d9; }
+
+/* Tables */
+.sl-markdown-content th { color: var(--sl-color-white); }
+.sl-markdown-content table { border-color: var(--sl-color-hairline); }
