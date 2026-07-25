@@ -20,7 +20,7 @@ const install = 'bun add @streamline-pulse/creeba-core'
   <body>
     <div class="page">
       <header class="nav">
-        <a class="brand" href={base}><span class="brand-dot"></span> CREEBA</a>
+        <a class="brand" href={base}>CREEBA</a>
         <nav class="nav-links">
           <a href={docs}>Docs</a>
           <a href={github} target="_blank" rel="noreferrer">GitHub</a>
@@ -28,17 +28,18 @@ const install = 'bun add @streamline-pulse/creeba-core'
         </nav>
       </header>
 
+      <!-- HERO -->
       <main class="hero">
         <div class="hero-copy">
           <span class="pill"><span class="pill-dot"></span> local-first · peer-to-peer</span>
           <h1 class="title">Stays in sync.<br /><span class="grad">Even offline.</span></h1>
           <p class="lede">
             Creeba keeps your app and its data in agreement across every device —
-            directly peer to peer. No server in the middle, no internet required.
+            directly peer to peer. A server is optional; the internet is optional.
           </p>
           <div class="cta">
             <a class="btn btn-primary" href={docs}>Get started →</a>
-            <a class="btn btn-ghost" href={`${base}guides/core/`}>How it works</a>
+            <a class="btn btn-ghost" href="#how">How it works</a>
           </div>
           <p class="install"><code><span class="dollar">$</span> {install}</code></p>
         </div>
@@ -46,24 +47,25 @@ const install = 'bun add @streamline-pulse/creeba-core'
         <!-- Live sync diagram -->
         <div class="demo" aria-hidden="true">
           <div class="demo-stage">
-            <article class="peer" id="peerA">
+            <article class="peer">
               <div class="peer-head"><span class="peer-dot"></span> Device A</div>
               <ul class="log" id="logA"></ul>
             </article>
 
             <div class="wire">
               <svg viewBox="0 0 120 200" preserveAspectRatio="none" class="wire-svg">
-                <line x1="0" y1="52" x2="120" y2="52" class="wire-line" />
-                <g class="cloud" id="cloud">
-                  <circle cx="60" cy="26" r="15" class="cloud-body" />
-                  <line x1="60" y1="41" x2="60" y2="50" class="cloud-stem" />
+                <line x1="0" y1="100" x2="120" y2="100" class="wire-line" />
+                <g class="server" id="server">
+                  <line x1="12" y1="100" x2="60" y2="40" class="srv-link" />
+                  <line x1="108" y1="100" x2="60" y2="40" class="srv-link" />
                 </g>
               </svg>
+              <span class="srv-node" id="srvNode" title="server">▤</span>
               <span class="packet" id="packet"></span>
-              <span class="cloud-x" id="cloudX">no server</span>
+              <span class="wire-label" id="wireLabel">server · optional</span>
             </div>
 
-            <article class="peer" id="peerB">
+            <article class="peer">
               <div class="peer-head"><span class="peer-dot"></span> Device B</div>
               <ul class="log" id="logB"></ul>
             </article>
@@ -79,22 +81,116 @@ const install = 'bun add @streamline-pulse/creeba-core'
         </div>
       </main>
 
-      <section class="features">
-        <article class="card">
-          <div class="card-ic">⇄</div>
-          <h3>Pluggable transports</h3>
-          <p>Encrypted QUIC over iroh with serverless mDNS discovery on the LAN. Swap the transport, keep the core.</p>
-        </article>
-        <article class="card">
-          <div class="card-ic">⧗</div>
-          <h3>Portable op-log</h3>
-          <p>A hybrid logical clock and last-writer-wins convergence — mergeable state across nodes, no database lock-in.</p>
-        </article>
-        <article class="card">
-          <div class="card-ic">◆</div>
-          <h3>Opaque payloads</h3>
-          <p>Your database stays local. The network carries only your app's payloads — never the database itself.</p>
-        </article>
+      <!-- HOW IT WORKS -->
+      <section class="section" id="how">
+        <div class="section-head">
+          <span class="eyebrow">How it works</span>
+          <h2>Three moving parts. No server in the middle.</h2>
+        </div>
+        <ol class="steps">
+          <li>
+            <span class="step-n">01</span>
+            <h3>Capture</h3>
+            <p>Every change becomes an operation in a local, append-only journal — the op-log. Your database keeps working exactly as before.</p>
+          </li>
+          <li>
+            <span class="step-n">02</span>
+            <h3>Gossip</h3>
+            <p>Peers exchange those operations directly — over the LAN via mDNS, or across the internet through encrypted QUIC. No round-trip to a server.</p>
+          </li>
+          <li>
+            <span class="step-n">03</span>
+            <h3>Converge</h3>
+            <p>A hybrid logical clock and last-writer-wins merge replay the journal in order, so every device ends up in agreement — automatically.</p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- FEATURES -->
+      <section class="section">
+        <div class="section-head">
+          <span class="eyebrow">Why creeba</span>
+          <h2>Local-first, without the lock-in.</h2>
+        </div>
+        <div class="features">
+          <article class="card"><div class="card-ic">⇄</div><h3>Pluggable transports</h3><p>Encrypted QUIC over iroh with serverless mDNS discovery. Swap the transport, keep the core.</p></article>
+          <article class="card"><div class="card-ic">⧗</div><h3>Portable op-log</h3><p>Hybrid logical clock + LWW convergence — mergeable state across nodes, no database lock-in.</p></article>
+          <article class="card"><div class="card-ic">◆</div><h3>Opaque payloads</h3><p>Your database stays local. The network carries only your app's payloads — never the database.</p></article>
+          <article class="card"><div class="card-ic">⦵</div><h3>Offline by default</h3><p>The app runs entirely on the device. No connection required, ever — sync catches up when peers meet.</p></article>
+          <article class="card"><div class="card-ic">⌘</div><h3>Bring your own store</h3><p>Plug an OpStore + Projection over Prisma, SQLite, DuckDB or raw SQL. The core has zero native deps.</p></article>
+          <article class="card"><div class="card-ic">◈</div><h3>Typed &amp; tiny</h3><p>TypeScript-first, generic over your payload. Runs on Bun, Node, the browser and React Native.</p></article>
+        </div>
+      </section>
+
+      <!-- CODE -->
+      <section class="section">
+        <div class="section-head">
+          <span class="eyebrow">Minimal setup</span>
+          <h2>A transport, your payload, done.</h2>
+        </div>
+        <div class="code-card">
+          <div class="code-top"><span class="dotc"></span><span class="dotc"></span><span class="dotc"></span><span class="code-file">sync.ts</span></div>
+          <pre><code><span class="k">import</span> {'{'} CreebaSync {'}'} <span class="k">from</span> <span class="s">'@streamline-pulse/creeba-core'</span>
+<span class="k">import</span> {'{'} IrohMdnsTransport {'}'} <span class="k">from</span> <span class="s">'@streamline-pulse/creeba-iroh-mdns'</span>
+
+<span class="k">const</span> sync = <span class="k">new</span> <span class="fn">CreebaSync</span>({'{'}
+  transport: <span class="k">new</span> <span class="fn">IrohMdnsTransport</span>(),
+  identity: {'{'} userId {'}'},
+  topic: <span class="s">'my-app'</span>,
+{'}'})
+
+<span class="c">// received from a peer → persist locally</span>
+sync.<span class="fn">on</span>(<span class="s">'data'</span>, (change) => store.<span class="fn">apply</span>(change))
+
+<span class="k">await</span> sync.<span class="fn">start</span>()
+sync.<span class="fn">broadcast</span>(change)</code></pre>
+        </div>
+      </section>
+
+      <!-- WORKS WITH -->
+      <section class="section">
+        <div class="section-head">
+          <span class="eyebrow">Works with your stack</span>
+          <h2>One binding, every relational store — plus Mongo.</h2>
+        </div>
+        <div class="chips">
+          <span class="chip">PostgreSQL</span>
+          <span class="chip">MySQL / MariaDB</span>
+          <span class="chip">SQLite</span>
+          <span class="chip">CockroachDB</span>
+          <span class="chip">MongoDB</span>
+          <span class="chip chip-soft">…or your own store</span>
+        </div>
+        <p class="chips-note">
+          <code>@streamline-pulse/creeba-oplog-prisma</code> captures mutations transparently
+          via a Prisma <code>$extends</code> — one schema covers the relational connectors, a
+          Mongo variant is provided. No ORM? Implement two small interfaces.
+        </p>
+      </section>
+
+      <!-- USE CASES -->
+      <section class="section">
+        <div class="section-head">
+          <span class="eyebrow">Where it fits</span>
+          <h2>Real apps, real users, shaky connectivity.</h2>
+        </div>
+        <div class="uses">
+          <div class="use"><h3>Offline-first shops</h3><p>Point-of-sale and stock that never freeze when the Wi-Fi drops mid-sale.</p></div>
+          <div class="use"><h3>Field teams</h3><p>Inspectors, deliveries, surveys — capture on the ground, converge back at base.</p></div>
+          <div class="use"><h3>Clinics &amp; sites</h3><p>Records that stay available and consistent across devices on the same network.</p></div>
+          <div class="use"><h3>Multi-tenant SaaS</h3><p>Each organisation's data converges cleanly and stays isolated from the rest.</p></div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta-band">
+        <h2>Build local-first — without the rewrite.</h2>
+        <p>Add creeba to the database and app you already have.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href={docs}>Get started →</a>
+          <a class="btn btn-ghost" href={github} target="_blank" rel="noreferrer">Star on GitHub</a>
+        </div>
+        <p class="install"><code><span class="dollar">$</span> {install}</code></p>
       </section>
 
       <footer class="foot">
@@ -135,8 +231,7 @@ const install = 'bun add @streamline-pulse/creeba-core'
       .page { max-width: 1140px; margin: 0 auto; padding: 0 1.5rem; }
 
       .nav { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0; }
-      .brand { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 700; letter-spacing: 0.3em; font-size: 0.9rem; }
-      .brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+      .brand { font-weight: 700; letter-spacing: 0.3em; font-size: 0.9rem; }
       .nav-links { display: flex; align-items: center; gap: 1.6rem; }
       .nav-links a { color: var(--muted); font-size: 0.95rem; transition: color 0.15s; }
       .nav-links a:hover { color: var(--ink); }
@@ -149,49 +244,33 @@ const install = 'bun add @streamline-pulse/creeba-core'
       .btn-ghost { padding: 0.8rem 1.35rem; border: 1px solid var(--line); color: var(--ink); background: rgba(255,255,255,0.02); }
       .btn-ghost:hover { border-color: rgba(120, 200, 195, 0.4); }
 
-      /* ---- hero: split ---- */
-      .hero {
-        display: grid;
-        grid-template-columns: 1.05fr 1fr;
-        gap: 3.5rem;
-        align-items: center;
-        padding: 5vh 0 4rem;
-      }
+      /* section scaffolding */
+      .section { padding: 4.5rem 0; border-top: 1px solid var(--line-soft); }
+      .section-head { max-width: 40rem; margin-bottom: 2.4rem; }
+      .eyebrow { text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.74rem; color: var(--accent); font-weight: 600; }
+      .section-head h2 { margin-top: 0.7rem; font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -0.02em; font-weight: 700; }
+
+      /* ---- hero ---- */
+      .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 3.5rem; align-items: center; padding: 5vh 0 4rem; }
       .pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.9rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.8rem; color: var(--muted); background: rgba(255,255,255,0.02); }
       .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
       .title { margin: 1.5rem 0 0; font-size: clamp(2.6rem, 5.5vw, 4.4rem); line-height: 1.0; letter-spacing: -0.03em; font-weight: 800; }
       .grad { background: linear-gradient(100deg, var(--accent) 5%, var(--accent-2) 95%); -webkit-background-clip: text; background-clip: text; color: transparent; }
       .lede { margin: 1.4rem 0 0; max-width: 32rem; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.15rem); }
-      .cta { display: flex; gap: 0.85rem; margin-top: 2rem; flex-wrap: wrap; }
+      .cta { display: flex; gap: 0.85rem; margin-top: 2rem; flex-wrap: wrap; align-items: center; }
       .cta .btn-primary { padding: 0.8rem 1.5rem; font-size: 1rem; }
       .install { margin-top: 1.6rem; }
       .install code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9rem; color: var(--muted); }
       .install .dollar { color: var(--accent); margin-right: 0.4rem; }
 
       /* ---- live diagram ---- */
-      .demo {
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008));
-        padding: 1.5rem;
-        box-shadow: 0 40px 80px -50px rgba(0,0,0,0.9);
-      }
-      .demo-stage { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: stretch; gap: 0; }
-      .peer { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 0.85rem; min-height: 190px; }
-      .peer-head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); font-weight: 600; margin-bottom: 0.7rem; letter-spacing: 0.02em; }
+      .demo { border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.008)); padding: 1.5rem; box-shadow: 0 40px 80px -50px rgba(0,0,0,0.9); }
+      .demo-stage { display: grid; grid-template-columns: 1fr 128px 1fr; align-items: stretch; }
+      .peer { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 0.85rem; min-height: 200px; }
+      .peer-head { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--muted); font-weight: 600; margin-bottom: 0.7rem; }
       .peer-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
       .log { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
-      .log li {
-        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        font-size: 0.76rem;
-        color: var(--ink);
-        background: rgba(120, 200, 195, 0.06);
-        border: 1px solid var(--line-soft);
-        border-radius: 7px;
-        padding: 0.32rem 0.5rem;
-        display: flex; justify-content: space-between; gap: 0.5rem;
-        animation: pop 0.35s ease;
-      }
+      .log li { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.76rem; color: var(--ink); background: rgba(120, 200, 195, 0.06); border: 1px solid var(--line-soft); border-radius: 7px; padding: 0.32rem 0.5rem; display: flex; justify-content: space-between; gap: 0.5rem; animation: pop 0.35s ease; }
       .log li .amt { color: var(--accent); }
       .log li.fresh { border-color: var(--accent); background: rgba(95, 227, 201, 0.14); }
       @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
@@ -199,16 +278,13 @@ const install = 'bun add @streamline-pulse/creeba-core'
       .wire { position: relative; }
       .wire-svg { width: 100%; height: 100%; position: absolute; inset: 0; }
       .wire-line { stroke: var(--line); stroke-width: 2; stroke-dasharray: 4 5; }
-      .cloud-body, .cloud-stem { stroke: var(--muted); stroke-width: 2; fill: none; transition: opacity 0.3s, stroke 0.3s; }
-      .cloud.off .cloud-body, .cloud.off .cloud-stem { opacity: 0.15; stroke: var(--danger); }
-      .cloud-x { position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 0.62rem; color: var(--danger); opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
-      .cloud-x.show { opacity: 1; }
-      .packet {
-        position: absolute; top: 52px; left: 0;
-        width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
-        background: var(--accent); box-shadow: 0 0 12px var(--accent);
-        opacity: 0;
-      }
+      .srv-link { stroke: rgba(120, 200, 195, 0.35); stroke-width: 1.6; stroke-dasharray: 3 4; transition: opacity 0.3s; }
+      .server.off .srv-link { opacity: 0; }
+      .srv-node { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); font-size: 1.05rem; line-height: 1; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 0.2rem 0.35rem; transition: opacity 0.3s, color 0.3s, border-color 0.3s; }
+      .srv-node.off { opacity: 0.12; color: var(--danger); border-color: var(--danger); }
+      .packet { position: absolute; top: 50%; left: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); opacity: 0; }
+      .wire-label { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); font-size: 0.62rem; color: var(--muted); white-space: nowrap; transition: color 0.3s; }
+      .wire-label.off { color: var(--danger); }
 
       .demo-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--line-soft); }
       .toggle { display: inline-flex; align-items: center; gap: 0.6rem; background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.85rem; }
@@ -220,13 +296,52 @@ const install = 'bun add @streamline-pulse/creeba-core'
       .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 1.6s ease-in-out infinite; }
       @keyframes blink { 50% { opacity: 0.35; } }
 
+      /* ---- steps ---- */
+      .steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; counter-reset: s; }
+      .steps li { border: 1px solid var(--line); border-radius: 16px; padding: 1.6rem; background: rgba(255,255,255,0.02); position: relative; }
+      .step-n { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--accent); letter-spacing: 0.1em; }
+      .steps h3 { margin: 0.8rem 0 0.5rem; font-size: 1.15rem; }
+      .steps p { color: var(--muted); font-size: 0.95rem; }
+
       /* ---- features ---- */
-      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 1rem 0 5rem; }
+      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
       .card { border: 1px solid var(--line); border-radius: 16px; padding: 1.5rem; background: rgba(255,255,255,0.02); transition: border-color 0.15s, transform 0.15s; }
       .card:hover { border-color: rgba(120, 200, 195, 0.32); transform: translateY(-3px); }
       .card-ic { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: rgba(95, 227, 201, 0.1); color: var(--accent); font-size: 1.1rem; margin-bottom: 0.9rem; }
       .card h3 { font-size: 1.05rem; margin-bottom: 0.45rem; }
       .card p { color: var(--muted); font-size: 0.92rem; }
+
+      /* ---- code ---- */
+      .code-card { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #0a1112; box-shadow: 0 30px 60px -44px rgba(0,0,0,0.9); max-width: 46rem; }
+      .code-top { display: flex; align-items: center; gap: 0.4rem; padding: 0.7rem 1rem; border-bottom: 1px solid var(--line-soft); }
+      .dotc { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.14); }
+      .code-file { margin-left: 0.6rem; font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--muted); }
+      .code-card pre { margin: 0; padding: 1.2rem 1.3rem; overflow-x: auto; }
+      .code-card code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.86rem; line-height: 1.7; color: #c8d6d4; white-space: pre; }
+      .code-card .k { color: #57c3ff; }
+      .code-card .s { color: #5fe3c9; }
+      .code-card .fn { color: #cfe6ff; }
+      .code-card .c { color: #5c7170; font-style: italic; }
+
+      /* ---- chips ---- */
+      .chips { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+      .chip { border: 1px solid var(--line); border-radius: 999px; padding: 0.5rem 1rem; font-size: 0.9rem; color: var(--ink); background: rgba(120, 200, 195, 0.05); }
+      .chip-soft { color: var(--muted); background: none; border-style: dashed; }
+      .chips-note { margin-top: 1.4rem; color: var(--muted); max-width: 42rem; font-size: 0.95rem; }
+      .chips-note code { font-family: ui-monospace, monospace; font-size: 0.85em; color: var(--accent); }
+
+      /* ---- use cases ---- */
+      .uses { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      .use { border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 12px; padding: 1.3rem 1.4rem; background: rgba(255,255,255,0.015); }
+      .use h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+      .use p { color: var(--muted); font-size: 0.93rem; }
+
+      /* ---- cta band ---- */
+      .cta-band { text-align: center; padding: 5rem 1.5rem; margin: 2rem 0; border: 1px solid var(--line); border-radius: 20px; background: radial-gradient(40rem 20rem at 50% 0%, rgba(95, 227, 201, 0.08), transparent 60%), rgba(255,255,255,0.015); }
+      .cta-band h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); letter-spacing: -0.02em; }
+      .cta-band p { color: var(--muted); margin-top: 0.7rem; }
+      .cta-band .cta { justify-content: center; margin-top: 1.8rem; }
+      .cta-band .install { text-align: center; }
 
       .foot { display: flex; align-items: center; justify-content: space-between; padding: 2rem 0 3rem; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 0.9rem; }
       .foot-links { display: flex; gap: 1.4rem; }
@@ -234,11 +349,10 @@ const install = 'bun add @streamline-pulse/creeba-core'
 
       @media (max-width: 900px) {
         .hero { grid-template-columns: 1fr; gap: 2.5rem; }
-        .features { grid-template-columns: 1fr; }
+        .steps, .features { grid-template-columns: 1fr; }
+        .uses { grid-template-columns: 1fr; }
       }
-      @media (max-width: 560px) {
-        .nav-links a:not(.btn) { display: none; }
-      }
+      @media (max-width: 560px) { .nav-links a:not(.btn) { display: none; } }
       @media (prefers-reduced-motion: reduce) {
         .status-dot, .log li { animation: none; }
         html { scroll-behavior: auto; }
@@ -251,8 +365,9 @@ const install = 'bun add @streamline-pulse/creeba-core'
       const logB = document.getElementById('logB')!
       const packet = document.getElementById('packet')!
       const wire = packet.parentElement as HTMLElement
-      const cloud = document.getElementById('cloud')!
-      const cloudX = document.getElementById('cloudX')!
+      const server = document.getElementById('server')!
+      const srvNode = document.getElementById('srvNode')!
+      const wireLabel = document.getElementById('wireLabel')!
       const toggle = document.getElementById('toggle')!
       const toggleLabel = document.getElementById('toggleLabel')!
       const status = document.getElementById('status')!
@@ -264,23 +379,14 @@ const install = 'bun add @streamline-pulse/creeba-core'
 
       function hex() { n += 1 + Math.floor(Math.random() * 12); return n.toString(16).slice(-4) }
       function amount() { return (Math.random() * 900 + 20).toFixed(2) }
-
-      function rowHTML(kind: string, id: string, amt: string) {
-        return `<span>${kind} #${id}</span><span class="amt">€${amt}</span>`
-      }
-
-      function trim(ul: HTMLElement) {
-        while (ul.children.length > MAX) ul.removeChild(ul.firstElementChild!)
-      }
-
+      function rowHTML(kind: string, id: string, amt: string) { return `<span>${kind} #${id}</span><span class="amt">€${amt}</span>` }
+      function trim(ul: HTMLElement) { while (ul.children.length > MAX) ul.removeChild(ul.firstElementChild!) }
       function addRow(ul: HTMLElement, html: string, fresh = false) {
         const li = document.createElement('li')
         li.innerHTML = html
         if (fresh) { li.classList.add('fresh'); setTimeout(() => li.classList.remove('fresh'), 900) }
-        ul.appendChild(li)
-        trim(ul)
+        ul.appendChild(li); trim(ul)
       }
-
       function sendPacket(toRight: boolean, onArrive: () => void) {
         if (reduce) { onArrive(); return }
         const w = wire.clientWidth
@@ -295,7 +401,6 @@ const install = 'bun add @streamline-pulse/creeba-core'
         )
         setTimeout(onArrive, 720)
       }
-
       function tick() {
         const toRight = Math.random() > 0.5
         const src = toRight ? logA : logB
@@ -305,21 +410,20 @@ const install = 'bun add @streamline-pulse/creeba-core'
         addRow(src, html, true)
         sendPacket(toRight, () => addRow(dst, html, true))
       }
-
       function setOnline(v: boolean) {
         online = v
         toggle.setAttribute('aria-checked', String(v))
-        cloud.classList.toggle('off', !v)
-        cloudX.classList.toggle('show', !v)
+        server.classList.toggle('off', !v)
+        srvNode.classList.toggle('off', !v)
+        wireLabel.classList.toggle('off', !v)
+        wireLabel.textContent = v ? 'server · optional' : 'no server · direct P2P'
         toggleLabel.textContent = v ? 'internet: on' : 'internet: off'
         status.innerHTML = v
           ? '<span class="status-dot"></span> synced peer-to-peer'
           : '<span class="status-dot"></span> still syncing — no server'
       }
-
       toggle.addEventListener('click', () => setOnline(!online))
 
-      // Seed both sides in agreement, then keep them converging.
       for (let i = 0; i < 3; i++) {
         const html = rowHTML(KINDS[i % KINDS.length], hex(), amount())
         addRow(logA, html); addRow(logB, html)
