@@ -35,3 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # LICENSE copiée dans chaque package au publish (source: LICENSE racine)
 packages/*/LICENSE
+
+# Astro (docs)
+docs/.astro/

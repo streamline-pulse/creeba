@@ -1,0 +1,44 @@
+import { defineConfig } from 'astro/config'
+import starlight from '@astrojs/starlight'
+
+export default defineConfig({
+  site: 'https://streamline-pulse.github.io',
+  base: '/creeba',
+  integrations: [
+    starlight({
+      title: 'Creeba',
+      description:
+        'Local-first P2P layer for TypeScript apps: pluggable transports (iroh + mDNS), a portable op-log, opaque payloads.',
+      social: [
+        {
+          icon: 'github',
+          label: 'GitHub',
+          href: 'https://github.com/streamline-pulse/creeba',
+        },
+      ],
+      editLink: {
+        baseUrl: 'https://github.com/streamline-pulse/creeba/edit/main/docs/',
+      },
+      customCss: ['./src/styles/custom.css'],
+      sidebar: [
+        {
+          label: 'Start here',
+          items: [{ slug: 'getting-started' }],
+        },
+        {
+          label: 'Guides',
+          items: [
+            { slug: 'guides/core' },
+            { slug: 'guides/oplog' },
+            { slug: 'guides/transport' },
+            { slug: 'guides/expo' },
+          ],
+        },
+        {
+          label: 'Reference',
+          items: [{ slug: 'reference/packages' }],
+        },
+      ],
+    }),
+  ],
+})
