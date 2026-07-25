@@ -14,13 +14,13 @@
  * prisma/mongo.prisma pour les 3 modeles d'infra a ajouter au schema.
  */
 import { OpLog, type Op, type OpKind } from "@streamline-pulse/creeba-oplog";
-import { PrismaOpStore, type KeyStrategy } from "./op_store";
-import { PrismaProjection } from "./projection";
-import type { PrismaLike } from "./prisma_like";
+import { PrismaOpStore, type KeyStrategy } from "./op_store.ts";
+import { PrismaProjection } from "./projection.ts";
+import type { PrismaLike } from "./prisma_like.ts";
 
-export type { PrismaLike, PrismaDelegate } from "./prisma_like";
-export { PrismaOpStore, type KeyStrategy } from "./op_store";
-export { PrismaProjection } from "./projection";
+export type { PrismaLike, PrismaDelegate } from "./prisma_like.ts";
+export { PrismaOpStore, type KeyStrategy } from "./op_store.ts";
+export { PrismaProjection } from "./projection.ts";
 
 /** Un modele synchronisable : accessor (camelCase), entity (nom du modele), champ d'org. */
 export interface SyncableEntity {

@@ -5,7 +5,7 @@ import type {
   RowState,
   Stamp,
 } from "@streamline-pulse/creeba-oplog";
-import { delegate, type PrismaLike } from "./prisma_like";
+import { delegate, type PrismaLike } from "./prisma_like.ts";
 
 const DELETED_FIELD = ":deleted";
 const SEP = "::";
