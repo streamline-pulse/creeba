@@ -1,5 +1,12 @@
 # @streamline-pulse/creeba-iroh-mdns
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [f9e2afe]
+  - @streamline-pulse/creeba-core@2.0.0
+
 ## 1.0.0
 
 ### Minor Changes
