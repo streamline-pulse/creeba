@@ -5,7 +5,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-const packages = ["core", "oplog", "oplog-prisma", "iroh-mdns"];
+const packages = ["core", "oplog", "oplog-prisma", "iroh-mdns", "ws"];
 
 for (const dir of packages) {
   const pkg = JSON.parse(readFileSync(`packages/${dir}/package.json`, "utf8"));
