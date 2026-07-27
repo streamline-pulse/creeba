@@ -1,6 +1,6 @@
 {
 	"name": "@streamline-pulse/creeba-oplog",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"description": "Portable op-log for local-first apps: hybrid logical clock, operation journal and LWW convergence. Persistence-agnostic — the app plugs an OpStore and a Projection (Prisma, SQLite, Drizzle, raw SQL…). No native or ORM dependency. Pairs with @streamline-pulse/creeba-core for P2P transport.",
 	"license": "MIT",
 	"type": "module",
