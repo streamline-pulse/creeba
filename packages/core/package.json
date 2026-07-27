@@ -1,6 +1,6 @@
 {
 	"name": "@streamline-pulse/creeba-core",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"description": "Portable Creeba P2P core: generic presence, peers and routing of opaque app payloads over a pluggable SyncTransport. No native dependency — usable from Bun, Node, browser or React Native. Message shape and persistence belong to the application.",
 	"license": "MIT",
 	"type": "module",

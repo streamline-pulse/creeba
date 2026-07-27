@@ -1,4 +1,4 @@
-# @streamline-pulse/creeba-core
+# @streamline-pulse/creeba-ws
 
 ## 2.0.0
 
@@ -15,4 +15,7 @@
   iroh+mDNS on the LAN and WebSocket to a cloud node) behind one `SyncTransport`,
   with per-peer dedup so the core sees a single logical peer.
 
-## 1.0.0
+### Patch Changes
+
+- Updated dependencies [f9e2afe]
+  - @streamline-pulse/creeba-core@2.0.0
