@@ -1,0 +1,52 @@
+{
+  "name": "@streamline-pulse/creeba-ws",
+  "version": "0.0.0",
+  "description": "Creeba WebSocket transport: client transport + server bridge so a well-known node (e.g. a cloud peer) is reachable over plain WebSocket — same frames, certs and convergence as any other transport. Identity is proven by an ed25519 challenge handshake; crypto is injected so the package stays dependency-free.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "p2p",
+    "websocket",
+    "transport",
+    "creeba"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-dts.mjs dist",
+    "prepublishOnly": "cp ../../LICENSE . && bun run build"
+  },
+  "dependencies": {
+    "@streamline-pulse/creeba-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:",
+    "@streamline-pulse/creeba-iroh-mdns": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/streamline-pulse/creeba.git",
+    "directory": "packages/ws"
+  },
+  "homepage": "https://github.com/streamline-pulse/creeba/tree/main/packages/ws#readme",
+  "bugs": {
+    "url": "https://github.com/streamline-pulse/creeba/issues"
+  }
+}
