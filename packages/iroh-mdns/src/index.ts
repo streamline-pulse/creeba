@@ -1,5 +1,6 @@
 import {
   Endpoint,
+  EndpointAddr,
   EndpointId,
   EndpointTicket,
   SecretKey,
@@ -85,6 +86,18 @@ export interface IrohMdnsOptions {
    * its own trust at a higher level (e.g. signed identity in `hello`).
    */
   allowPeer?: (peerId: PeerId) => boolean;
+  /**
+   * Node-ids to always connect to and keep connected, dialed by id ALONE (no
+   * ticket, no mDNS) — iroh's n0 discovery resolves the address and relays
+   * handle NAT. This is how a node reaches a known peer across the internet
+   * (e.g. a well-known super-node). A maintenance loop redials on drop and
+   * tolerates being offline (local-first): failures are silent, retried later.
+   */
+  bootstrapPeers?: string[];
+  /**
+   * Interval (ms) of the bootstrap-peer maintenance loop. Default 5000.
+   */
+  bootstrapIntervalMs?: number;
 }
 
 /** Generate a fresh 32-byte iroh secret key (raw bytes), to persist by the app. */
@@ -150,6 +163,9 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
   private readonly secretKey?: number[];
   private readonly maxFrameSize: number;
   private readonly allowPeer?: (peerId: PeerId) => boolean;
+  private readonly bootstrapPeers: string[];
+  private readonly bootstrapIntervalMs: number;
+  private bootstrapTimer?: ReturnType<typeof setInterval>;
 
   /** peerId (iroh node-id) -> connection */
   private readonly connections = new Map<PeerId, PeerConn>();
@@ -165,6 +181,8 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
     this.secretKey = options.secretKey;
     this.maxFrameSize = options.maxFrameSize ?? DEFAULT_MAX_FRAME_SIZE;
     this.allowPeer = options.allowPeer;
+    this.bootstrapPeers = (options.bootstrapPeers ?? []).filter(Boolean);
+    this.bootstrapIntervalMs = options.bootstrapIntervalMs ?? 5000;
   }
 
   on<K extends keyof TransportEvents<T>>(
@@ -184,6 +202,16 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
     this.refreshTicket();
     log(`start node-id=${this.publicKey.slice(0, 12)}… ticketLen=${this.ticket.length}`);
     void this.acceptLoop();
+    // Bootstrap peers (WAN, dialés par node-id via discovery n0). Indépendant du
+    // mDNS et du topic : on maintient la connexion dès le démarrage, l'offline
+    // est toléré (redial au prochain tick).
+    if (this.bootstrapPeers.length > 0) {
+      this.maintainBootstrap();
+      this.bootstrapTimer = setInterval(
+        () => this.maintainBootstrap(),
+        this.bootstrapIntervalMs,
+      );
+    }
     return this.publicKey;
   }
 
@@ -210,6 +238,7 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
 
   destroy(): void {
     this.destroyed = true;
+    if (this.bootstrapTimer) clearInterval(this.bootstrapTimer);
     try {
       this.browser?.stop();
     } catch {
@@ -277,6 +306,42 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
       return;
     }
     await this.attachConnection(conn, true);
+  }
+
+  /**
+   * Dial a peer by node-id ALONE — no ticket, no local network. Builds an
+   * address carrying only the id; iroh's n0 discovery resolves the reachable
+   * path (direct or relay). This is the WAN entry point (e.g. a super-node).
+   */
+  private async dialById(peerId: PeerId): Promise<void> {
+    const endpoint = this.endpoint;
+    if (!endpoint) return;
+    let conn: Connection;
+    try {
+      const addr = new EndpointAddr(EndpointId.fromString(peerId));
+      conn = await endpoint.connect(addr, this.alpn);
+    } catch (err) {
+      log(`dialById err ${peerId.slice(0, 12)}…: ${String((err as Error)?.message ?? err)}`);
+      return;
+    }
+    await this.attachConnection(conn, true);
+  }
+
+  /**
+   * Ensure every bootstrap peer is connected: dial (by id) those not already
+   * connected or in-flight. Called on start and on an interval; offline dials
+   * simply fail and are retried at the next tick.
+   */
+  private maintainBootstrap(): void {
+    if (this.destroyed || !this.endpoint) return;
+    for (const peerId of this.bootstrapPeers) {
+      if (peerId === this.publicKey) continue;
+      if (this.connections.has(peerId) || this.dialing.has(peerId)) continue;
+      this.dialing.add(peerId);
+      this.dialById(peerId)
+        .catch(() => {})
+        .finally(() => this.dialing.delete(peerId));
+    }
   }
 
   private async attachConnection(conn: Connection, isDialer: boolean): Promise<void> {
