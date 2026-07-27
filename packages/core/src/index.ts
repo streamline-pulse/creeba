@@ -12,6 +12,7 @@
  */
 export { CreebaSync } from "./core.ts";
 export type { CreebaSyncOptions } from "./core.ts";
+export { CompositeTransport } from "./composite.ts";
 export { Emitter } from "./emitter.ts";
 export type { Listener } from "./emitter.ts";
 export type { SyncTransport, TransportEvents } from "./transport.ts";

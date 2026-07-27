@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "bun run --cwd packages/core build && bun run --cwd packages/oplog build && bun run --cwd packages/oplog-prisma build && bun run --cwd packages/iroh-mdns build",
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/oplog build && bun run --cwd packages/oplog-prisma build && bun run --cwd packages/iroh-mdns build && bun run --cwd packages/ws build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "changeset": "changeset",
