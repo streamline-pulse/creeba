@@ -230,3 +230,5 @@ export async function replay(
     else await projection.upsert(op.entity, op.entityId, op.fields);
   }
 }
+
+export { MemoryOpStore, MemoryProjection } from "./memory.ts";
