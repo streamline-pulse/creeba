@@ -1,6 +1,6 @@
 {
 	"name": "@streamline-pulse/creeba-mesh",
-	"version": "0.1.0",
+	"version": "4.0.0",
 	"description": "Trust layer for Creeba meshes: portable ed25519 node identity, self-contained membership certificates with revocation, and local pairing. Certificates verify offline against trust anchors — no server, no CA. Crypto is injectable and wire-compatible with iroh node-ids.",
 	"license": "MIT",
 	"type": "module",
@@ -39,8 +39,8 @@
 		"@noble/ed25519": "catalog:"
 	},
 	"peerDependencies": {
-		"@streamline-pulse/creeba-core": ">=3",
-		"@streamline-pulse/creeba-oplog": ">=3"
+		"@streamline-pulse/creeba-core": ">=4.0.0",
+		"@streamline-pulse/creeba-oplog": ">=4.0.0"
 	},
 	"peerDependenciesMeta": {
 		"@streamline-pulse/creeba-core": {
