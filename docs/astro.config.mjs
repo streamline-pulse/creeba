@@ -31,6 +31,7 @@ export default defineConfig({
           items: [
             { slug: 'guides/core' },
             { slug: 'guides/oplog' },
+            { slug: 'guides/mesh' },
             { slug: 'guides/transport' },
             { slug: 'guides/expo' },
           ],
