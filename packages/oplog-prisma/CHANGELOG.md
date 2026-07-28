@@ -1,5 +1,12 @@
 # @streamline-pulse/creeba-oplog-prisma
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [c02ca4d]
+  - @streamline-pulse/creeba-oplog@4.0.0
+
 ## 3.0.0
 
 ### Patch Changes
