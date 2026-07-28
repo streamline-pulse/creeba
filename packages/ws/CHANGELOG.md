@@ -1,5 +1,12 @@
 # @streamline-pulse/creeba-ws
 
+## 4.0.0
+
+### Patch Changes
+
+- Updated dependencies [cb0156e]
+  - @streamline-pulse/creeba-core@4.0.0
+
 ## 3.0.0
 
 ### Patch Changes

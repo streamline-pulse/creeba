@@ -1,5 +1,13 @@
 # creeba-chat-expo
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [cb0156e]
+  - @streamline-pulse/creeba-core@4.0.0
+  - @streamline-pulse/creeba-expo@0.1.0
+
 ## 0.1.3
 
 ### Patch Changes
