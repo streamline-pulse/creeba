@@ -140,6 +140,18 @@
         "typescript": "catalog:",
       },
     },
+    "packages/mesh": {
+      "name": "@streamline-pulse/creeba-mesh",
+      "version": "0.1.0",
+      "dependencies": {
+        "@noble/ed25519": "catalog:",
+      },
+      "devDependencies": {
+        "@streamline-pulse/creeba-iroh-mdns": "workspace:*",
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/oplog": {
       "name": "@streamline-pulse/creeba-oplog",
       "version": "3.0.0",
@@ -174,6 +186,7 @@
     },
   },
   "catalog": {
+    "@noble/ed25519": "^3.1.0",
     "@number0/iroh": "^1.0.0",
     "@types/bun": "latest",
     "bonjour-service": "^1.4.3",
@@ -700,6 +713,8 @@
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg=="],
 
+    "@noble/ed25519": ["@noble/ed25519@3.1.0", "", {}, "sha512-pfcObRY3CtvwfaG9Mt5XqZdKmAQppl37tHUeuBhDUbiwJBCVY4/A4lbMvb1xKhMDx96AqAqZpMWuBX1HulhX4g=="],
+
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
     "@nodelib/fs.stat": ["@nodelib/fs.stat@2.0.5", "", {}, "sha512-RkhPPp2zrqDAQA/2jNhnztcPAlv64XdhIp7a7454A5ovI7Bukxgt7MX7udwAu3zg1DcpPU0rz3VV1SeaqvY4+A=="],
@@ -929,6 +944,8 @@
     "@streamline-pulse/creeba-expo": ["@streamline-pulse/creeba-expo@workspace:packages/expo"],
 
     "@streamline-pulse/creeba-iroh-mdns": ["@streamline-pulse/creeba-iroh-mdns@workspace:packages/iroh-mdns"],
+
+    "@streamline-pulse/creeba-mesh": ["@streamline-pulse/creeba-mesh@workspace:packages/mesh"],
 
     "@streamline-pulse/creeba-oplog": ["@streamline-pulse/creeba-oplog@workspace:packages/oplog"],
 

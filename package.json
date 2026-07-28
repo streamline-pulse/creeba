@@ -12,11 +12,12 @@
       "typescript": "^5",
       "@types/bun": "latest",
       "@number0/iroh": "^1.0.0",
+      "@noble/ed25519": "^3.1.0",
       "bonjour-service": "^1.4.3"
     }
   },
   "scripts": {
-    "build": "bun run --cwd packages/core build && bun run --cwd packages/oplog build && bun run --cwd packages/oplog-prisma build && bun run --cwd packages/iroh-mdns build && bun run --cwd packages/ws build",
+    "build": "bun run --cwd packages/core build && bun run --cwd packages/oplog build && bun run --cwd packages/oplog-prisma build && bun run --cwd packages/mesh build && bun run --cwd packages/iroh-mdns build && bun run --cwd packages/ws build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "changeset": "changeset",
