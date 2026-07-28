@@ -38,8 +38,22 @@
 	"dependencies": {
 		"@noble/ed25519": "catalog:"
 	},
+	"peerDependencies": {
+		"@streamline-pulse/creeba-core": ">=3",
+		"@streamline-pulse/creeba-oplog": ">=3"
+	},
+	"peerDependenciesMeta": {
+		"@streamline-pulse/creeba-core": {
+			"optional": true
+		},
+		"@streamline-pulse/creeba-oplog": {
+			"optional": true
+		}
+	},
 	"devDependencies": {
+		"@streamline-pulse/creeba-core": "workspace:*",
 		"@streamline-pulse/creeba-iroh-mdns": "workspace:*",
+		"@streamline-pulse/creeba-oplog": "workspace:*",
 		"@types/bun": "catalog:",
 		"typescript": "catalog:"
 	},

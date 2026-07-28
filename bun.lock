@@ -147,10 +147,20 @@
         "@noble/ed25519": "catalog:",
       },
       "devDependencies": {
+        "@streamline-pulse/creeba-core": "workspace:*",
         "@streamline-pulse/creeba-iroh-mdns": "workspace:*",
+        "@streamline-pulse/creeba-oplog": "workspace:*",
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
+      "peerDependencies": {
+        "@streamline-pulse/creeba-core": ">=3",
+        "@streamline-pulse/creeba-oplog": ">=3",
+      },
+      "optionalPeers": [
+        "@streamline-pulse/creeba-core",
+        "@streamline-pulse/creeba-oplog",
+      ],
     },
     "packages/oplog": {
       "name": "@streamline-pulse/creeba-oplog",

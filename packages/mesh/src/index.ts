@@ -33,3 +33,13 @@ export {
   encodeInvite,
 } from "./pairing.ts";
 export type { Invite, JoinerProfile, PairingMsg } from "./pairing.ts";
+export { PeerTrust } from "./peers.ts";
+export type { PeerTrustOptions, TrustedPeer, TrustResult } from "./peers.ts";
+export { mayAccept, mayServe } from "./scope.ts";
+export { MEMBERSHIPS_KEY, MeshSync } from "./mesh_sync.ts";
+export type {
+  MeshJournal,
+  MeshMsg,
+  MeshPeerSync,
+  MeshSyncOptions,
+} from "./mesh_sync.ts";
