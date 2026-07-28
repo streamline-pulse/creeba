@@ -1,0 +1,55 @@
+{
+	"name": "@streamline-pulse/creeba-mesh",
+	"version": "0.1.0",
+	"description": "Trust layer for Creeba meshes: portable ed25519 node identity, self-contained membership certificates with revocation, and local pairing. Certificates verify offline against trust anchors — no server, no CA. Crypto is injectable and wire-compatible with iroh node-ids.",
+	"license": "MIT",
+	"type": "module",
+	"keywords": [
+		"p2p",
+		"local-first",
+		"trust",
+		"ed25519",
+		"membership",
+		"pairing",
+		"creeba"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"src",
+		"LICENSE"
+	],
+	"sideEffects": false,
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-dts.mjs dist",
+		"prepublishOnly": "cp ../../LICENSE . && bun run build"
+	},
+	"dependencies": {
+		"@noble/ed25519": "catalog:"
+	},
+	"devDependencies": {
+		"@streamline-pulse/creeba-iroh-mdns": "workspace:*",
+		"@types/bun": "catalog:",
+		"typescript": "catalog:"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/streamline-pulse/creeba.git",
+		"directory": "packages/mesh"
+	},
+	"homepage": "https://github.com/streamline-pulse/creeba/tree/main/packages/mesh#readme",
+	"bugs": {
+		"url": "https://github.com/streamline-pulse/creeba/issues"
+	}
+}
