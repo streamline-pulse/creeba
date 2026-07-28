@@ -1,5 +1,13 @@
 # creeba-chat-electrobun
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [54fce13]
+  - @streamline-pulse/creeba-core@3.0.0
+  - @streamline-pulse/creeba-iroh-mdns@3.0.0
+
 ## 0.1.2
 
 ### Patch Changes

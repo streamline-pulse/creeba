@@ -1,6 +1,6 @@
 {
 	"name": "@streamline-pulse/creeba-iroh-mdns",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "Creeba iroh + mDNS transport for Bun/Node (desktop & server nodes): encrypted QUIC (holepunch + relay) with serverless mDNS discovery, plus ed25519 identity primitives. Implements @streamline-pulse/creeba-core's SyncTransport. Carries the native binding so the core stays dependency-free.",
 	"license": "MIT",
 	"type": "module",
