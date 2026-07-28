@@ -1,5 +1,15 @@
 # @streamline-pulse/creeba-core
 
+## 4.0.0
+
+### Minor Changes
+
+- cb0156e: New `MemoryNetwork` / `MemoryTransport`: an in-process transport where nodes
+  exchange frames directly — no network, so multi-node scenarios are
+  deterministic and instant. Intended for tests, examples and demos; the
+  application protocol sees no difference from iroh or WebSocket. The network
+  can also simulate latency, `partition(a, b)` and `heal(a, b)`.
+
 ## 3.0.0
 
 ### Minor Changes

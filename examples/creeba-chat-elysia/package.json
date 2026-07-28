@@ -1,6 +1,6 @@
 {
   "name": "creeba-chat-elysia",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Creeba P2P node served by Elysia (Bun): CreebaSync + iroh/mDNS transport + local bun:sqlite database, exposed to a web client via WebSocket.",
   "type": "module",
   "private": true,
