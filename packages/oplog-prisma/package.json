@@ -1,6 +1,6 @@
 {
 	"name": "@streamline-pulse/creeba-oplog-prisma",
-	"version": "5.0.0",
+	"version": "5.0.1",
 	"description": "Prisma binding for @streamline-pulse/creeba-oplog: transparent mutation capture ($extends), a ready-made OpStore and Projection. One schema covers relational connectors (pg/mysql/sqlite/cockroach); a Mongo variant (synthetic key) is provided. The app only declares its syncable entities.",
 	"license": "MIT",
 	"type": "module",
