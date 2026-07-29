@@ -232,3 +232,6 @@ export async function replay(
 }
 
 export { MemoryOpStore, MemoryProjection } from "./memory.ts";
+
+export { compact } from "./compact.ts";
+export type { CompactOptions, CompactResult } from "./compact.ts";
