@@ -1,5 +1,12 @@
 # creeba-chat-electrobun
 
+## 0.1.5
+
+### Patch Changes
+
+- @streamline-pulse/creeba-core@5.0.0
+- @streamline-pulse/creeba-iroh-mdns@5.0.0
+
 ## 0.1.4
 
 ### Patch Changes
