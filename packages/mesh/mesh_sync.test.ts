@@ -527,6 +527,42 @@ describe("MeshSync — rattrapage incrémental", () => {
     expect(b.projection.row("Projects", "tardif-2")).toEqual({ name: "raté 2" });
   });
 
+  it("échange dans les DEUX sens dès le premier contact, sans doublon", async () => {
+    // Pas de rattrapage périodique dans les tests : si le premier contact ne
+    // suffit pas, rien n'arrive. Et chaque op ne doit traverser QU'UNE fois —
+    // pousser son journal en plus de répondre au `pull` la enverrait deux fois.
+    const net = new MemoryNetwork<MeshMsg>();
+    const org = await keypair();
+    const anchors: TrustAnchors = {
+      orgKeys: new Map([["org-a", org.publicKey]]),
+      superPeerKey: null,
+    };
+    const ka = await keypair();
+    const kb = await keypair();
+
+    const a = await node(net, ka, [await cert(org, ka.publicKey, "u-a", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    const b = await node(net, kb, [await cert(org, kb.publicKey, "u-b", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    await settle();
+
+    // Chacun écrit dans son coin, hors de portée de l'autre.
+    net.partition(ka.publicKey, kb.publicKey);
+    await settle();
+    for (let i = 0; i < 3; i++) await write(a, `a${i}`, { n: i }, "org-a");
+    for (let i = 0; i < 2; i++) await write(b, `b${i}`, { n: i }, "org-a");
+    await settle();
+
+    const before = { a: a.sent.ops, b: b.sent.ops };
+    net.heal(ka.publicKey, kb.publicKey);
+    await settle(25);
+
+    // Convergence complète, sans attendre le moindre tick.
+    expect(Object.keys(a.projection.rows("Projects"))).toHaveLength(5);
+    expect(Object.keys(b.projection.rows("Projects"))).toHaveLength(5);
+    // Et chaque op n'a traversé qu'une fois.
+    expect(a.sent.ops - before.a).toBe(3);
+    expect(b.sent.ops - before.b).toBe(2);
+  });
+
   it("ne SAUTE pas une op ancienne venue d'un nœud jamais entendu", async () => {
     // Le piège qu'un curseur global unique n'évite pas : a possède des ops
     // récentes, et c écrit avec une horloge très en retard. Un « depuis la plus

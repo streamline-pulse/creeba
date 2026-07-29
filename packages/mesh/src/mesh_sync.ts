@@ -104,6 +104,12 @@ export class MeshSync {
    * fréquentes.
    */
   private readonly servedTo = new Map<string, VersionVector>();
+  /**
+   * Évaluations de confiance en cours. Vérifier une signature est asynchrone,
+   * et une frame du pair peut doubler son propre `hello` : sans ça, elle serait
+   * jetée pour « pair inconnu » alors qu'on est en train de l'admettre.
+   */
+  private readonly evaluating = new Map<string, Promise<void>>();
 
   constructor(private readonly options: MeshSyncOptions) {
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000));
@@ -165,6 +171,11 @@ export class MeshSync {
       metadata: { [MEMBERSHIPS_KEY]: memberships },
     });
     await this.reevaluateKnownPeers();
+    // NOS certificats ont changé : des pairs qui nous refusaient jusqu'ici vont
+    // nous admettre. Notre confiance ENVERS eux, elle, n'a pas bougé — donc
+    // aucun `pull` ne repartirait de lui-même, et nos demandes précédentes ont
+    // été jetées. On redemande explicitement.
+    this.pullFromPeers();
   }
 
   /** Re-run trust over every peer currently connected. */
@@ -187,6 +198,21 @@ export class MeshSync {
 
   /** Feed every `peer` / `peers` event here. */
   async onPeer(peer: Peer): Promise<void> {
+    // Une évaluation à la fois par pair : deux annonces rapprochées ne doivent
+    // pas se croiser et conclure chacune de leur côté.
+    const pending = this.evaluating.get(peer.peerId);
+    if (pending) await pending;
+    const run = this.evaluatePeer(peer);
+    this.evaluating.set(peer.peerId, run);
+    try {
+      await run;
+    } finally {
+      if (this.evaluating.get(peer.peerId) === run)
+        this.evaluating.delete(peer.peerId);
+    }
+  }
+
+  private async evaluatePeer(peer: Peer): Promise<void> {
     const memberships =
       ((peer.metadata as Record<string, unknown> | undefined)?.[
         MEMBERSHIPS_KEY
@@ -205,22 +231,31 @@ export class MeshSync {
     this.log(
       `peer trusted ${short(peer.peerId)} (user=${result.peer.userId}, orgs=${result.peer.orgIds.length})`,
     );
-    // Bidirectional catch-up: ask for their history AND push ours, so a guest
-    // just admitted receives its membership without waiting for a tick.
+    // Un seul message suffit. Notre `pull` nous rapporte ce qui nous manque, et
+    // le SIEN — qu'il envoie en nous accordant sa confiance — lui rapporte ce
+    // qui lui manque. Pousser en plus notre journal ferait doublon : au moment
+    // où il nous a envoyé son `pull`, son vecteur ne connaissait pas encore ces
+    // ops, donc on les lui renvoie de toute façon en réponse.
     await this.loadHave();
     this.options.sync.send(peer.peerId, {
       t: "pull",
       sinceHlc: null,
       have: { ...this.have },
     });
-    await this.pushOpsTo(result.peer);
   }
 
   /** Feed every `data` event here. Returns `false` if it was not for the mesh. */
   async onData(msg: unknown, from: Peer): Promise<boolean> {
     if (!isMeshMsg(msg)) return false;
+    let peer = this.trust.get(from.peerId);
+    if (!peer) {
+      // Peut-être une évaluation en cours que cette frame a doublée : on
+      // l'attend plutôt que de jeter un message légitime. On n'attend QUE ce
+      // qu'on avait déjà lancé — un inconnu n'obtient rien de plus.
+      await this.evaluating.get(from.peerId);
+      peer = this.trust.get(from.peerId);
+    }
     // An untrusted peer gets nothing and gives nothing.
-    const peer = this.trust.get(from.peerId);
     if (!peer) return true;
 
     await this.options.journal.ready;
@@ -348,28 +383,6 @@ export class MeshSync {
       pending = failed;
     }
     return applied;
-  }
-
-  /**
-   * Proactively send a peer what concerns it — immediate catch-up for someone
-   * we have just started trusting. Necessary because trust is ASYMMETRIC during
-   * pairing: the host trusts the guest before the guest holds its certificate,
-   * so the guest cannot ask yet.
-   *
-   * Bounded by what that peer last told us it holds: on first contact we know
-   * nothing and send everything, but a reconnection only replays the delta.
-   */
-  private async pushOpsTo(peer: TrustedPeer): Promise<void> {
-    await this.options.journal.ready;
-    const known = this.servedTo.get(peer.peerId);
-    const all = await this.options.journal.list();
-    const ops = all.filter(
-      (op) => mayServe(op, peer) && isMissingFrom(op, known),
-    );
-    if (ops.length) {
-      this.options.sync.send(peer.peerId, { t: "ops", ops });
-      this.noteServed(peer.peerId, ops);
-    }
   }
 
   private pullFromPeers(): void {
