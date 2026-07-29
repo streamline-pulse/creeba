@@ -37,6 +37,8 @@ export { PeerTrust } from "./peers.ts";
 export type { PeerTrustOptions, TrustedPeer, TrustResult } from "./peers.ts";
 export { mayAccept, mayServe } from "./scope.ts";
 export { MEMBERSHIPS_KEY, MeshSync } from "./mesh_sync.ts";
+export { advance, isMissingFrom, vectorFrom } from "./version_vector.ts";
+export type { VersionVector } from "./version_vector.ts";
 export type {
   MeshJournal,
   MeshMsg,
