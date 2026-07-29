@@ -1,5 +1,11 @@
 # @streamline-pulse/creeba-iroh-mdns
 
+## 5.0.0
+
+### Patch Changes
+
+- @streamline-pulse/creeba-core@5.0.0
+
 ## 4.0.0
 
 ### Patch Changes
