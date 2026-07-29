@@ -1,5 +1,12 @@
 # creeba-chat-expo
 
+## 0.1.6
+
+### Patch Changes
+
+- @streamline-pulse/creeba-core@5.0.1
+- @streamline-pulse/creeba-expo@0.1.0
+
 ## 0.1.5
 
 ### Patch Changes
