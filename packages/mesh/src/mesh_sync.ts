@@ -4,14 +4,25 @@ import type { SignedMembership, TrustAnchors } from "./certs.ts";
 import type { NodeCrypto } from "./crypto.ts";
 import { PeerTrust, type TrustedPeer } from "./peers.ts";
 import { mayAccept, mayServe } from "./scope.ts";
+import {
+  advance,
+  isMissingFrom,
+  vectorFrom,
+  type VersionVector,
+} from "./version_vector.ts";
 
 /**
  * Wire messages of the mesh. `ops` carries operations, `pull` asks a peer for
- * its journal from a cursor (`null` = everything).
+ * what we are missing.
+ *
+ * `have` is a version vector — the highest HLC we hold PER ORIGIN NODE — so the
+ * peer answers with the delta instead of its whole journal. `sinceHlc` predates
+ * it and is kept for the wire: a peer running an older version reads that field
+ * and ignores `have`, so both directions stay correct while a fleet updates.
  */
 export type MeshMsg =
   | { t: "ops"; ops: Op[] }
-  | { t: "pull"; sinceHlc: Hlc | null };
+  | { t: "pull"; sinceHlc: Hlc | null; have?: VersionVector };
 
 function isMeshMsg(msg: unknown): msg is MeshMsg {
   const t = (msg as { t?: unknown } | null | undefined)?.t;
@@ -83,6 +94,16 @@ export class MeshSync {
   private pullWindowTimer?: ReturnType<typeof setTimeout>;
   private lastSyncAt: number | null = null;
   private pulling = false;
+  /** Ce que NOUS détenons, par nœud d'origine. Envoyé à chaque `pull`. */
+  private have: VersionVector = {};
+  private haveLoaded: Promise<void> | null = null;
+  /**
+   * Ce que chaque pair a déclaré détenir, à son dernier `pull`. Sert à ne lui
+   * pousser que le delta : sans ça, chaque reconnexion lui renverrait tout le
+   * journal — et depuis qu'un pair parti est oublié, les reconnexions sont
+   * fréquentes.
+   */
+  private readonly servedTo = new Map<string, VersionVector>();
 
   constructor(private readonly options: MeshSyncOptions) {
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000));
@@ -98,10 +119,28 @@ export class MeshSync {
 
   /** Start the periodic catch-up — a safety net for a missed live broadcast. */
   start(): void {
+    void this.loadHave();
     const interval = this.options.catchUpIntervalMs;
     if (interval === null) return;
     this.stop();
     this.catchUpTimer = setInterval(() => this.pullFromPeers(), interval ?? 20_000);
+  }
+
+  /**
+   * Rebuild the version vector from the journal — ONE full read, at startup.
+   * After that it is maintained incrementally, so a catch-up never has to look
+   * at the whole journal again.
+   */
+  private loadHave(): Promise<void> {
+    if (!this.haveLoaded)
+      this.haveLoaded = (async () => {
+        await this.options.journal.ready;
+        this.have = vectorFrom(await this.options.journal.list());
+      })().catch(() => {
+        /* journal indisponible : on repartira d'un vecteur vide (correct, juste
+           moins économe) */
+      });
+    return this.haveLoaded;
   }
 
   stop(): void {
@@ -168,7 +207,12 @@ export class MeshSync {
     );
     // Bidirectional catch-up: ask for their history AND push ours, so a guest
     // just admitted receives its membership without waiting for a tick.
-    this.options.sync.send(peer.peerId, { t: "pull", sinceHlc: null });
+    await this.loadHave();
+    this.options.sync.send(peer.peerId, {
+      t: "pull",
+      sinceHlc: null,
+      have: { ...this.have },
+    });
     await this.pushOpsTo(result.peer);
   }
 
@@ -182,11 +226,23 @@ export class MeshSync {
     await this.options.journal.ready;
 
     if (msg.t === "pull") {
+      // Copie obligatoire : un transport en mémoire livre la frame PAR
+      // RÉFÉRENCE. Sans copie, on garderait un alias du vecteur vivant du pair
+      // — et `noteServed` muterait son état à distance. Le bug ne se voyait
+      // pas sur iroh/WS, qui sérialisent.
+      if (msg.have) this.servedTo.set(from.peerId, { ...msg.have });
       const all = await this.options.journal.list(
         msg.sinceHlc ? { sinceHlc: msg.sinceHlc } : undefined,
       );
-      const ops = all.filter((op) => mayServe(op, peer));
-      if (ops.length) this.options.sync.send(from.peerId, { t: "ops", ops });
+      // Ce que le demandeur n'a pas ET qui le concerne. Sans `have` (pair d'une
+      // version antérieure), on lui sert tout, comme avant.
+      const ops = all.filter(
+        (op) => mayServe(op, peer) && isMissingFrom(op, msg.have),
+      );
+      if (ops.length) {
+        this.options.sync.send(from.peerId, { t: "ops", ops });
+        this.noteServed(from.peerId, ops);
+      }
       return true;
     }
 
@@ -206,6 +262,7 @@ export class MeshSync {
 
   /** Call for every op the app journals LOCALLY. */
   onLocalOp(op: Op): void {
+    advance(this.have, op);
     this.broadcastOp(op);
   }
 
@@ -235,8 +292,25 @@ export class MeshSync {
   /** Send an op to every trusted peer it concerns, except `exceptPeerId`. */
   private broadcastOp(op: Op, exceptPeerId?: string): void {
     for (const peer of this.trust.peers())
-      if (peer.peerId !== exceptPeerId && mayServe(op, peer))
+      if (peer.peerId !== exceptPeerId && mayServe(op, peer)) {
         this.options.sync.send(peer.peerId, { t: "ops", ops: [op] });
+        this.noteServed(peer.peerId, [op]);
+      }
+  }
+
+  /**
+   * Retient ce qu'on a envoyé à un pair, pour ne pas le lui repousser plus tard.
+   * Une estimation optimiste : si la frame s'est perdue, le prochain `pull` du
+   * pair porte SON vecteur réel et écrase le nôtre — c'est toujours sa
+   * déclaration qui fait foi.
+   */
+  private noteServed(peerId: string, ops: Op[]): void {
+    let vv = this.servedTo.get(peerId);
+    if (!vv) {
+      vv = {};
+      this.servedTo.set(peerId, vv);
+    }
+    for (const op of ops) advance(vv, op);
   }
 
   /**
@@ -257,6 +331,9 @@ export class MeshSync {
         try {
           // `false` = stale under LWW, i.e. already handled — not a failure.
           if (await this.options.journal.apply(op)) applied.push(op);
+          // Applied OR stale, we now hold it: the cursor moves either way. Only
+          // an op that THREW stays missing, so it is asked for again.
+          advance(this.have, op);
         } catch {
           failed.push(op);
         }
@@ -274,14 +351,25 @@ export class MeshSync {
   }
 
   /**
-   * Proactively send a peer everything that concerns it — immediate catch-up
-   * for someone we have just started trusting.
+   * Proactively send a peer what concerns it — immediate catch-up for someone
+   * we have just started trusting. Necessary because trust is ASYMMETRIC during
+   * pairing: the host trusts the guest before the guest holds its certificate,
+   * so the guest cannot ask yet.
+   *
+   * Bounded by what that peer last told us it holds: on first contact we know
+   * nothing and send everything, but a reconnection only replays the delta.
    */
   private async pushOpsTo(peer: TrustedPeer): Promise<void> {
     await this.options.journal.ready;
+    const known = this.servedTo.get(peer.peerId);
     const all = await this.options.journal.list();
-    const ops = all.filter((op) => mayServe(op, peer));
-    if (ops.length) this.options.sync.send(peer.peerId, { t: "ops", ops });
+    const ops = all.filter(
+      (op) => mayServe(op, peer) && isMissingFrom(op, known),
+    );
+    if (ops.length) {
+      this.options.sync.send(peer.peerId, { t: "ops", ops });
+      this.noteServed(peer.peerId, ops);
+    }
   }
 
   private pullFromPeers(): void {
@@ -294,8 +382,19 @@ export class MeshSync {
     this.pullWindowTimer = setTimeout(() => {
       this.pulling = false;
     }, this.options.pullWindowMs ?? 4_000);
-    for (const peer of peers)
-      this.options.sync.send(peer.peerId, { t: "pull", sinceHlc: null });
+    void this.loadHave().then(() => {
+      for (const peer of peers)
+        this.options.sync.send(peer.peerId, {
+          t: "pull",
+          sinceHlc: null,
+          have: { ...this.have },
+        });
+    });
+  }
+
+  /** Ce que ce nœud détient, par origine (diagnostic / tests). */
+  version(): VersionVector {
+    return { ...this.have };
   }
 }
 

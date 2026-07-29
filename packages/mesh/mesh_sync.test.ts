@@ -57,6 +57,8 @@ interface NodeOptions {
   myOrgIds?: string[];
   /** Simule une dépendance absente : tant que vrai, l'op n'est pas applicable. */
   blocked?: (op: Op, projection: MemoryProjection) => boolean;
+  /** Horloge murale du nœud, pour fabriquer des HLC volontairement anciennes. */
+  clock?: () => number;
 }
 
 /** Un nœud complet : transport, journal, mesh — comme dans une vraie app. */
@@ -74,7 +76,7 @@ async function node(
 
   const oplog = new OpLog(store, key.publicKey, {
     newId: () => `op-${++seq}`,
-    now: () => Date.now(),
+    now: opts.clock ?? (() => Date.now()),
     onLocalOp: (op) => {
       // Une écriture locale a déjà atterri dans les tables de l'app.
       if (op.kind === "delete") void projection.remove(op.entity, op.entityId);
@@ -110,6 +112,17 @@ async function node(
 
   emitLocal = (op) => mesh.onLocalOp(op);
 
+  // Compteur de trafic : combien d'ops ce nœud a-t-il réellement mises sur le fil.
+  const sent = { messages: 0, ops: 0 };
+  const rawSend = sync.send.bind(sync);
+  sync.send = (peerId: string, msg: MeshMsg) => {
+    if (msg.t === "ops") {
+      sent.messages++;
+      sent.ops += msg.ops.length;
+    }
+    return rawSend(peerId, msg);
+  };
+
   sync.on("peer", (peer) => void mesh.onPeer(peer));
   sync.on("peers", (peers) => void mesh.onPeers(peers));
   sync.on("data", (msg, from) => {
@@ -118,7 +131,7 @@ async function node(
 
   await sync.start();
   await ready;
-  return { key, store, projection, oplog, sync, mesh, memberships };
+  return { key, store, projection, oplog, sync, mesh, memberships, sent };
 }
 
 /** Laisse le réseau et les applications asynchrones se stabiliser. */
@@ -446,6 +459,146 @@ describe("MeshSync — application des ops", () => {
     await settle();
 
     expect(a.mesh.pullNow()).toEqual({ ok: false, peers: 0 });
+  });
+});
+
+describe("MeshSync — rattrapage incrémental", () => {
+  it("un rattrapage sans rien de neuf ne met AUCUNE op sur le fil", async () => {
+    const net = new MemoryNetwork<MeshMsg>();
+    const org = await keypair();
+    const anchors: TrustAnchors = {
+      orgKeys: new Map([["org-a", org.publicKey]]),
+      superPeerKey: null,
+    };
+    const ka = await keypair();
+    const kb = await keypair();
+
+    const a = await node(net, ka, [await cert(org, ka.publicKey, "u-a", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    const b = await node(net, kb, [await cert(org, kb.publicKey, "u-b", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    await settle();
+
+    for (let i = 0; i < 30; i++)
+      await write(a, `p${i}`, { name: `Projet ${i}` }, "org-a");
+    await settle(20);
+    expect(Object.keys(b.projection.rows("Projects"))).toHaveLength(30);
+
+    // Tout le monde est à jour : les rattrapages suivants doivent être muets.
+    const before = { a: a.sent.ops, b: b.sent.ops };
+    a.mesh.pullNow();
+    b.mesh.pullNow();
+    await settle(20);
+
+    expect(a.sent.ops - before.a).toBe(0);
+    expect(b.sent.ops - before.b).toBe(0);
+  });
+
+  it("ne renvoie que le delta, pas le journal entier", async () => {
+    const net = new MemoryNetwork<MeshMsg>();
+    const org = await keypair();
+    const anchors: TrustAnchors = {
+      orgKeys: new Map([["org-a", org.publicKey]]),
+      superPeerKey: null,
+    };
+    const ka = await keypair();
+    const kb = await keypair();
+
+    const a = await node(net, ka, [await cert(org, ka.publicKey, "u-a", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    const b = await node(net, kb, [await cert(org, kb.publicKey, "u-b", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    await settle();
+
+    for (let i = 0; i < 20; i++)
+      await write(a, `p${i}`, { name: `Projet ${i}` }, "org-a");
+    await settle(20);
+
+    // b coupé : il rate deux écritures en direct.
+    net.partition(ka.publicKey, kb.publicKey);
+    await settle();
+    await write(a, "tardif-1", { name: "raté 1" }, "org-a");
+    await write(a, "tardif-2", { name: "raté 2" }, "org-a");
+    await settle();
+
+    const before = a.sent.ops;
+    net.heal(ka.publicKey, kb.publicKey);
+    await settle(20);
+
+    // 22 ops au journal de a, mais seules les 2 manquantes traversent.
+    expect(await a.store.list()).toHaveLength(22);
+    expect(a.sent.ops - before).toBe(2);
+    expect(b.projection.row("Projects", "tardif-2")).toEqual({ name: "raté 2" });
+  });
+
+  it("ne SAUTE pas une op ancienne venue d'un nœud jamais entendu", async () => {
+    // Le piège qu'un curseur global unique n'évite pas : a possède des ops
+    // récentes, et c écrit avec une horloge très en retard. Un « depuis la plus
+    // haute HLC vue » laisserait l'op de c sous le curseur, à jamais.
+    const net = new MemoryNetwork<MeshMsg>();
+    const org = await keypair();
+    const anchors: TrustAnchors = {
+      orgKeys: new Map([["org-a", org.publicKey]]),
+      superPeerKey: null,
+    };
+    const ka = await keypair();
+    const kb = await keypair();
+    const kc = await keypair();
+
+    const member = async (k: Key, id: string, o: NodeOptions = {}) =>
+      node(net, k, [await cert(org, k.publicKey, id, ["org-a"])], anchors, {
+        myOrgIds: ["org-a"],
+        ...o,
+      });
+
+    const a = await member(ka, "u-a", { clock: () => 9_000_000 });
+    const b = await member(kb, "u-b");
+    // c a une horloge très en retard : ses ops naissent « anciennes ».
+    const c = await member(kc, "u-c", { clock: () => 1_000 });
+    await settle();
+
+    // a ne verra JAMAIS c directement : tout doit transiter par b.
+    net.partition(ka.publicKey, kc.publicKey);
+    await write(a, "recent", { name: "écrit par a" }, "org-a");
+    await settle(20);
+
+    // a est coupé de b pendant que c publie son op ancienne.
+    net.partition(ka.publicKey, kb.publicKey);
+    await settle();
+    await write(c, "ancien", { name: "écrit par c, horloge en retard" }, "org-a");
+    await settle(20);
+    expect(b.projection.row("Projects", "ancien")).toBeDefined();
+    expect(a.projection.row("Projects", "ancien")).toBeUndefined();
+
+    // a revient : le rattrapage doit lui livrer l'op de c malgré son HLC basse.
+    net.heal(ka.publicKey, kb.publicKey);
+    await settle(25);
+
+    expect(a.projection.row("Projects", "ancien")).toEqual({
+      name: "écrit par c, horloge en retard",
+    });
+    expect(a.mesh.version()[kc.publicKey]).toBeDefined();
+  });
+
+  it("sert tout à un pair qui n'annonce pas de vecteur (version antérieure)", async () => {
+    const net = new MemoryNetwork<MeshMsg>();
+    const org = await keypair();
+    const anchors: TrustAnchors = {
+      orgKeys: new Map([["org-a", org.publicKey]]),
+      superPeerKey: null,
+    };
+    const ka = await keypair();
+    const kb = await keypair();
+
+    const a = await node(net, ka, [await cert(org, ka.publicKey, "u-a", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    const b = await node(net, kb, [await cert(org, kb.publicKey, "u-b", ["org-a"])], anchors, { myOrgIds: ["org-a"] });
+    await settle();
+    await write(a, "p1", { name: "Alpha" }, "org-a");
+    await write(a, "p2", { name: "Beta" }, "org-a");
+    await settle(20);
+
+    // Un `pull` à l'ancienne : ni `have`, ni curseur.
+    const before = a.sent.ops;
+    b.sync.send(ka.publicKey, { t: "pull", sinceHlc: null });
+    await settle(20);
+
+    expect(a.sent.ops - before).toBe(2);
   });
 });
 
