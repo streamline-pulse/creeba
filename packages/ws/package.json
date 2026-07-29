@@ -1,6 +1,6 @@
 {
   "name": "@streamline-pulse/creeba-ws",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Creeba WebSocket transport: client transport + server bridge so a well-known node (e.g. a cloud peer) is reachable over plain WebSocket — same frames, certs and convergence as any other transport. Identity is proven by an ed25519 challenge handshake; crypto is injected so the package stays dependency-free.",
   "license": "MIT",
   "type": "module",

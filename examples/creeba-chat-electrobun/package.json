@@ -1,6 +1,6 @@
 {
   "name": "creeba-chat-electrobun",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Desktop P2P chat (Electrobun + Bun): local DuckDB database, iroh (QUIC) transport and local mDNS discovery.",
   "scripts": {
     "start": "vite build && electrobun dev",
