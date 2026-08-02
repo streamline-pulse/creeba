@@ -2,8 +2,8 @@ import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 
 export default defineConfig({
-  site: 'https://streamline-pulse.github.io',
-  base: '/creeba',
+  site: 'https://creeba.com',
+  base: '/',
   integrations: [
     starlight({
       title: 'Creeba',
