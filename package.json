@@ -13,6 +13,7 @@
       "@types/bun": "latest",
       "@number0/iroh": "^1.0.0",
       "@noble/ed25519": "^3.1.0",
+      "@noble/ciphers": "^2.0.0",
       "bonjour-service": "^1.4.3"
     }
   },

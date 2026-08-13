@@ -36,6 +36,7 @@
 		"prepublishOnly": "cp ../../LICENSE . && bun run build"
 	},
 	"dependencies": {
+		"@noble/ciphers": "catalog:",
 		"@noble/ed25519": "catalog:"
 	},
 	"peerDependencies": {

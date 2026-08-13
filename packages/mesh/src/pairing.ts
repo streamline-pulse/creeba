@@ -28,7 +28,17 @@ export interface JoinerProfile {
 
 export type PairingMsg =
   | { t: "join-request"; orgId: string; token: string; profile: JoinerProfile }
-  | { t: "join-grant"; cert: SignedMembership };
+  | {
+      t: "join-grant";
+      cert: SignedMembership;
+      /**
+       * Matériel secret opaque que l'app livre AVEC le cert, sur le canal de
+       * pairing authentifié — typiquement une clé de données d'org. La mesh ne
+       * l'interprète pas ; à l'app de le protéger si le canal n'est pas de
+       * confiance de bout en bout.
+       */
+      secrets?: Record<string, string>;
+    };
 
 const B64URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 

@@ -36,6 +36,12 @@ export type { Invite, JoinerProfile, PairingMsg } from "./pairing.ts";
 export { PeerTrust } from "./peers.ts";
 export type { PeerTrustOptions, TrustedPeer, TrustResult } from "./peers.ts";
 export { mayAccept, mayServe } from "./scope.ts";
+export {
+  decryptSecret,
+  encryptSecret,
+  isEncryptedSecret,
+  newSecretKey,
+} from "./secret_box.ts";
 export { MEMBERSHIPS_KEY, MeshSync } from "./mesh_sync.ts";
 export { advance, isMissingFrom, vectorFrom } from "./version_vector.ts";
 export type { VersionVector } from "./version_vector.ts";
