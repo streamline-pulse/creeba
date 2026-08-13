@@ -1,5 +1,19 @@
 # @streamline-pulse/creeba-mesh
 
+## 6.0.0
+
+### Minor Changes
+
+- b498679: feat(mesh): `encryptSecret`/`decryptSecret` (XChaCha20-Poly1305) + `newSecretKey`/`isEncryptedSecret` — chiffrement symétrique authentifié pour garder des secrets de champ (mots de passe de connecteurs, tokens) hors d'un journal synchronisé en clair. Format versionné, nonce aléatoire de 192 bits, ciphertext falsifié rejeté à l'ouverture.
+
+  feat(mesh): le message de pairing `join-grant` porte un champ optionnel `secrets` (Record opaque) pour livrer du matériel secret d'app (ex. une clé de données d'org) avec le cert, sur le canal de pairing authentifié.
+
+### Patch Changes
+
+- b54f20b: fix(mesh): le cloisonnement par org vaut aussi à la RÉCEPTION — un op n'est appliqué que si l'expéditeur est de confiance pour son org (`mayServe` sur le pair émetteur, en plus de `mayAccept`). Avant, un nœud multi-org pouvait servir de point d'injection vers une org que le pair émetteur ne couvrait pas. Supprime aussi `servedTo`/`noteServed`, état write-only resté après le retrait de `pushOpsTo`.
+  - @streamline-pulse/creeba-core@6.0.0
+  - @streamline-pulse/creeba-oplog@6.0.0
+
 ## 5.0.1
 
 ### Patch Changes

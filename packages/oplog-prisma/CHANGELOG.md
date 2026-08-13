@@ -1,5 +1,12 @@
 # @streamline-pulse/creeba-oplog-prisma
 
+## 6.0.0
+
+### Patch Changes
+
+- b54f20b: fix(oplog-prisma): la projection retombe sur une mise à jour quand son `create` perd la course contre une écriture concurrente (P2002) — l'erreur ne remonte plus au mesh, qui la prenait pour une dépendance manquante et pouvait finir par abandonner l'op.
+  - @streamline-pulse/creeba-oplog@6.0.0
+
 ## 5.0.1
 
 ### Patch Changes
