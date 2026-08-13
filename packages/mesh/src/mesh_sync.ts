@@ -98,13 +98,6 @@ export class MeshSync {
   private have: VersionVector = {};
   private haveLoaded: Promise<void> | null = null;
   /**
-   * Ce que chaque pair a déclaré détenir, à son dernier `pull`. Sert à ne lui
-   * pousser que le delta : sans ça, chaque reconnexion lui renverrait tout le
-   * journal — et depuis qu'un pair parti est oublié, les reconnexions sont
-   * fréquentes.
-   */
-  private readonly servedTo = new Map<string, VersionVector>();
-  /**
    * Évaluations de confiance en cours. Vérifier une signature est asynchrone,
    * et une frame du pair peut doubler son propre `hello` : sans ça, elle serait
    * jetée pour « pair inconnu » alors qu'on est en train de l'admettre.
@@ -261,11 +254,6 @@ export class MeshSync {
     await this.options.journal.ready;
 
     if (msg.t === "pull") {
-      // Copie obligatoire : un transport en mémoire livre la frame PAR
-      // RÉFÉRENCE. Sans copie, on garderait un alias du vecteur vivant du pair
-      // — et `noteServed` muterait son état à distance. Le bug ne se voyait
-      // pas sur iroh/WS, qui sérialisent.
-      if (msg.have) this.servedTo.set(from.peerId, { ...msg.have });
       const all = await this.options.journal.list(
         msg.sinceHlc ? { sinceHlc: msg.sinceHlc } : undefined,
       );
@@ -274,14 +262,11 @@ export class MeshSync {
       const ops = all.filter(
         (op) => mayServe(op, peer) && isMissingFrom(op, msg.have),
       );
-      if (ops.length) {
-        this.options.sync.send(from.peerId, { t: "ops", ops });
-        this.noteServed(from.peerId, ops);
-      }
+      if (ops.length) this.options.sync.send(from.peerId, { t: "ops", ops });
       return true;
     }
 
-    const applied = await this.applyOps(msg.ops);
+    const applied = await this.applyOps(msg.ops, peer);
     if (applied.length) {
       this.lastSyncAt = Date.now();
       this.pulling = false;
@@ -327,37 +312,29 @@ export class MeshSync {
   /** Send an op to every trusted peer it concerns, except `exceptPeerId`. */
   private broadcastOp(op: Op, exceptPeerId?: string): void {
     for (const peer of this.trust.peers())
-      if (peer.peerId !== exceptPeerId && mayServe(op, peer)) {
+      if (peer.peerId !== exceptPeerId && mayServe(op, peer))
         this.options.sync.send(peer.peerId, { t: "ops", ops: [op] });
-        this.noteServed(peer.peerId, [op]);
-      }
-  }
-
-  /**
-   * Retient ce qu'on a envoyé à un pair, pour ne pas le lui repousser plus tard.
-   * Une estimation optimiste : si la frame s'est perdue, le prochain `pull` du
-   * pair porte SON vecteur réel et écrase le nôtre — c'est toujours sa
-   * déclaration qui fait foi.
-   */
-  private noteServed(peerId: string, ops: Op[]): void {
-    let vv = this.servedTo.get(peerId);
-    if (!vv) {
-      vv = {};
-      this.servedTo.set(peerId, vv);
-    }
-    for (const op of ops) advance(vv, op);
   }
 
   /**
    * Apply a batch in several passes. An op may fail because a dependency has
    * not landed yet (a membership row before its user); as long as a pass makes
    * progress, the rest is retried — so arrival ORDER stops mattering.
+   *
+   * `mayAccept` only checks that WE hold `op.orgId` — it says nothing about
+   * whether the SENDER was entitled to it. A node that belongs to several orgs
+   * could otherwise be used to inject an op into one of its orgs via a peer
+   * only trusted for another. `mayServe(op, from)` is the same check used
+   * before serving/broadcasting an op TO a peer; applied here, it also gates
+   * what we accept FROM one, which is the missing half of the same rule.
    */
-  private async applyOps(ops: Op[]): Promise<Op[]> {
+  private async applyOps(ops: Op[], from: TrustedPeer): Promise<Op[]> {
     const applied: Op[] = [];
     const isSuperPeer = this.options.isSuperPeer ?? false;
     const myOrgIds = this.options.myOrgIds();
-    let pending = ops.filter((op) => mayAccept(op, myOrgIds, isSuperPeer));
+    let pending = ops.filter(
+      (op) => mayAccept(op, myOrgIds, isSuperPeer) && mayServe(op, from),
+    );
 
     const passes = this.options.applyPasses ?? 5;
     for (let pass = 0; pass < passes && pending.length; pass++) {

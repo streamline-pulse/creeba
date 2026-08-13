@@ -355,6 +355,65 @@ describe("MeshSync — cloisonnement par org", () => {
     expect(s.projection.row("Projects", "p1")).toEqual({ name: "par relais" });
     expect(b.projection.row("Projects", "p1")).toEqual({ name: "par relais" });
   });
+
+  it("un pair ne peut pas injecter d'op dans une org pour laquelle il n'a pas confiance", async () => {
+    // n est membre de org-a ET org-b. p n'a confiance que pour org-a. Un p
+    // compromis (ou un bug côté transport) qui forge un message `ops` portant
+    // org-b ne doit PAS pouvoir s'en servir pour atteindre org-b via n — même
+    // si n, lui, en est bien membre. mayAccept seul (« suis-JE membre de cette
+    // org ? ») ne suffit pas : il faut aussi que l'EXPÉDITEUR le soit.
+    const net = new MemoryNetwork<MeshMsg>();
+    const orgA = await keypair();
+    const orgB = await keypair();
+    const anchors: TrustAnchors = {
+      orgKeys: new Map([
+        ["org-a", orgA.publicKey],
+        ["org-b", orgB.publicKey],
+      ]),
+      superPeerKey: null,
+    };
+    const kn = await keypair();
+    const kp = await keypair();
+
+    const n = await node(
+      net,
+      kn,
+      [
+        await cert(orgA, kn.publicKey, "u-n", ["org-a"]),
+        await cert(orgB, kn.publicKey, "u-n", ["org-b"]),
+      ],
+      anchors,
+      { myOrgIds: ["org-a", "org-b"] },
+    );
+    const p = await node(net, kp, [await cert(orgA, kp.publicKey, "u-p", ["org-a"])], anchors, {
+      myOrgIds: ["org-a"],
+    });
+    await settle();
+
+    expect(n.mesh.peers()).toHaveLength(1);
+
+    // Message forgé à la main : p n'a jamais reçu confiance pour org-b, donc
+    // son propre mesh ne construirait jamais ça — on simule un client
+    // compromis qui parle le protocole directement sur le fil.
+    p.sync.send(kn.publicKey, {
+      t: "ops",
+      ops: [
+        {
+          id: "forged-1",
+          hlc: { wall: NOW * 1000, counter: 0 },
+          nodeId: kp.publicKey,
+          entity: "Projects",
+          entityId: "forged",
+          kind: "upsert",
+          fields: { name: "injecté par un pair non habilité pour org-b" },
+          orgId: "org-b",
+        },
+      ],
+    });
+    await settle(20);
+
+    expect(n.projection.row("Projects", "forged")).toBeUndefined();
+  });
 });
 
 describe("MeshSync — application des ops", () => {

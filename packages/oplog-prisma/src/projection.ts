@@ -26,7 +26,22 @@ export class PrismaProjection implements Projection {
       where: { id: entityId },
       data: fields,
     });
-    if (count === 0) await model.create({ data: { id: entityId, ...fields } });
+    if (count > 0) return;
+    try {
+      await model.create({ data: { id: entityId, ...fields } });
+    } catch (error) {
+      if (!isUniqueConstraintViolation(error)) throw error;
+      // Une autre écriture a créé la ligne entre notre updateMany et notre
+      // create (deux nœuds appliquant le même op en parallèle) : elle existe
+      // maintenant, donc on retente la mise à jour au lieu de laisser
+      // remonter une erreur — sinon le mesh la traite comme une dépendance
+      // manquante et peut finir par abandonner un op pourtant applicable.
+      const retry = await model.updateMany({
+        where: { id: entityId },
+        data: fields,
+      });
+      if (retry.count === 0) throw error;
+    }
   }
 
   async remove(entity: string, entityId: string): Promise<void> {
@@ -35,4 +50,13 @@ export class PrismaProjection implements Projection {
       data: { deleted: true },
     });
   }
+}
+
+/** Duck-typé : ce binding ne dépend pas de `@prisma/client` (voir prisma_like.ts). */
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }
