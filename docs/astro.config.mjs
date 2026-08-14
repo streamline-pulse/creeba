@@ -21,6 +21,9 @@ export default defineConfig({
         baseUrl: 'https://github.com/streamline-pulse/creeba/edit/main/docs/',
       },
       customCss: ['./src/styles/custom.css'],
+      components: {
+        Footer: './src/components/Footer.astro',
+      },
       sidebar: [
         {
           label: 'Start here',

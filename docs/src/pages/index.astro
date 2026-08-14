@@ -31,7 +31,7 @@ const install = 'bun add @streamline-pulse/creeba-core'
       <!-- HERO -->
       <main class="hero">
         <div class="hero-copy">
-          <span class="pill"><span class="pill-dot"></span> local-first · peer-to-peer</span>
+          <span class="pill">local-first · peer-to-peer</span>
           <h1 class="title">Stays in sync.<br /><span class="grad">Even offline.</span></h1>
           <p class="lede">
             Creeba keeps your app and its data in agreement across every device —
@@ -194,7 +194,7 @@ sync.<span class="fn">broadcast</span>(change)</code></pre>
       </section>
 
       <footer class="foot">
-        <span>MIT © Streamline Pulse</span>
+        <span>MIT © <a href="https://streamline-pulse.com" target="_blank" rel="noreferrer">Streamline Pulse</a></span>
         <span class="foot-links">
           <a href={docs}>Docs</a>
           <a href={github} target="_blank" rel="noreferrer">GitHub</a>
@@ -253,7 +253,6 @@ sync.<span class="fn">broadcast</span>(change)</code></pre>
       /* ---- hero ---- */
       .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 3.5rem; align-items: center; padding: 5vh 0 4rem; }
       .pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.42rem 0.9rem; border: 1px solid var(--line); border-radius: 999px; font-size: 0.8rem; color: var(--muted); background: rgba(255,255,255,0.02); }
-      .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
       .title { margin: 1.5rem 0 0; font-size: clamp(2.6rem, 5.5vw, 4.4rem); line-height: 1.0; letter-spacing: -0.03em; font-weight: 800; }
       .grad { background: linear-gradient(100deg, var(--accent) 5%, var(--accent-2) 95%); -webkit-background-clip: text; background-clip: text; color: transparent; }
       .lede { margin: 1.4rem 0 0; max-width: 32rem; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.15rem); }
@@ -345,7 +344,7 @@ sync.<span class="fn">broadcast</span>(change)</code></pre>
 
       .foot { display: flex; align-items: center; justify-content: space-between; padding: 2rem 0 3rem; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 0.9rem; }
       .foot-links { display: flex; gap: 1.4rem; }
-      .foot-links a:hover { color: var(--ink); }
+      .foot a:hover { color: var(--ink); }
 
       @media (max-width: 900px) {
         .hero { grid-template-columns: 1fr; gap: 2.5rem; }
