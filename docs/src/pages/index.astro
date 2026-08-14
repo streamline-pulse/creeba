@@ -233,8 +233,8 @@ sync.<span class="fn">broadcast</span>(change)</code></pre>
       .nav { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0; }
       .brand { font-weight: 700; letter-spacing: 0.3em; font-size: 0.9rem; }
       .nav-links { display: flex; align-items: center; gap: 1.6rem; }
-      .nav-links a { color: var(--muted); font-size: 0.95rem; transition: color 0.15s; }
-      .nav-links a:hover { color: var(--ink); }
+      .nav-links a:not(.btn) { color: var(--muted); font-size: 0.95rem; transition: color 0.15s; }
+      .nav-links a:not(.btn):hover { color: var(--ink); }
 
       .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; font-weight: 600; transition: transform 0.12s, background 0.15s, border-color 0.15s; white-space: nowrap; }
       .btn:active { transform: translateY(1px); }
