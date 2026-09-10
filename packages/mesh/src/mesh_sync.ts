@@ -70,6 +70,13 @@ export interface MeshSyncOptions {
   pullWindowMs?: number;
   /** Retry passes for ops blocked by a missing dependency. Default 5. */
   applyPasses?: number;
+  /**
+   * Upper bound (serialized bytes) of one `ops` message served in reply to a
+   * pull. A catch-up of a whole org can weigh tens of MB: a single message
+   * above the transport frame limit is dropped, the peer is cut, and the same
+   * reply is replayed forever. Default 1 MiB, well under any frame limit.
+   */
+  maxBatchBytes?: number;
   now?: () => number;
   log?: (message: string) => void;
 }
@@ -262,7 +269,8 @@ export class MeshSync {
       const ops = all.filter(
         (op) => mayServe(op, peer) && isMissingFrom(op, msg.have),
       );
-      if (ops.length) this.options.sync.send(from.peerId, { t: "ops", ops });
+      for (const batch of batchBySize(ops, this.options.maxBatchBytes ?? DEFAULT_MAX_BATCH_BYTES))
+        this.options.sync.send(from.peerId, { t: "ops", ops: batch });
       return true;
     }
 
@@ -390,4 +398,31 @@ export class MeshSync {
 
 function short(peerId: string): string {
   return `${peerId.slice(0, 12)}…`;
+}
+
+
+const DEFAULT_MAX_BATCH_BYTES = 1024 * 1024;
+
+/**
+ * Split ops into consecutive batches whose serialized size stays under `max`.
+ * An op larger than `max` on its own still travels, alone in its batch: the
+ * receiver applies batches independently, so partial delivery only delays the
+ * rest of the catch-up instead of poisoning it.
+ */
+export function batchBySize<T>(ops: T[], max: number): T[][] {
+  const batches: T[][] = [];
+  let current: T[] = [];
+  let size = 0;
+  for (const op of ops) {
+    const bytes = JSON.stringify(op).length + 1;
+    if (current.length && size + bytes > max) {
+      batches.push(current);
+      current = [];
+      size = 0;
+    }
+    current.push(op);
+    size += bytes;
+  }
+  if (current.length) batches.push(current);
+  return batches;
 }

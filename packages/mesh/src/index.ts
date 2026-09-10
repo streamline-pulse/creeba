@@ -42,7 +42,7 @@ export {
   isEncryptedSecret,
   newSecretKey,
 } from "./secret_box.ts";
-export { MEMBERSHIPS_KEY, MeshSync } from "./mesh_sync.ts";
+export { MEMBERSHIPS_KEY, MeshSync, batchBySize } from "./mesh_sync.ts";
 export { advance, isMissingFrom, vectorFrom } from "./version_vector.ts";
 export type { VersionVector } from "./version_vector.ts";
 export type {
