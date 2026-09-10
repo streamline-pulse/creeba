@@ -1,5 +1,13 @@
 # @streamline-pulse/creeba-mesh
 
+## 6.0.1
+
+### Patch Changes
+
+- c378820: Serve pull replies in size-bounded `ops` batches (1 MiB by default, `maxBatchBytes` option) instead of one message. A whole-org catch-up above the transport frame limit was dropped by the receiver, which cut the peer and replayed the same oversized reply forever.
+  - @streamline-pulse/creeba-core@6.0.1
+  - @streamline-pulse/creeba-oplog@6.0.1
+
 ## 6.0.0
 
 ### Minor Changes

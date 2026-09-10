@@ -1,5 +1,12 @@
 # creeba-chat-elysia
 
+## 0.1.8
+
+### Patch Changes
+
+- @streamline-pulse/creeba-core@6.0.1
+- @streamline-pulse/creeba-iroh-mdns@6.0.1
+
 ## 0.1.7
 
 ### Patch Changes
