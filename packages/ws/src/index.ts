@@ -5,6 +5,9 @@ import {
   type SyncTransport,
   type TransportEvents,
   type WireFrame,
+  decodeFrame,
+  encodeFrame,
+  hasBinary,
 } from "@streamline-pulse/creeba-core";
 
 /**
@@ -54,9 +57,12 @@ function randomNonce(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Minimal socket surface the bridges need — framework/runtime agnostic. */
+/**
+ * Minimal socket surface the bridges need — framework/runtime agnostic. Frames
+ * carrying bytes (file chunks…) go as binary messages; everything else as text.
+ */
 export interface WsLike {
-  send(data: string): void;
+  send(data: string | Uint8Array): void;
   close(): void;
 }
 
@@ -99,12 +105,12 @@ class Handshake {
     if (this.authed) this.send({ k: "f", f: frame });
   }
 
-  onMessage(raw: string): void {
-    if (raw.length > this.opts.maxFrameSize)
+  onMessage(raw: string | Uint8Array): void {
+    if ((typeof raw === "string" ? raw.length : raw.byteLength) > this.opts.maxFrameSize)
       return this.opts.drop("frame-too-large");
     let msg: WsMsg;
     try {
-      msg = JSON.parse(raw) as WsMsg;
+      msg = typeof raw === "string" ? (JSON.parse(raw) as WsMsg) : decodeFrame<WsMsg>(raw);
     } catch {
       return this.opts.drop("bad-json");
     }
@@ -151,7 +157,7 @@ class Handshake {
 
   private send(msg: WsMsg): void {
     try {
-      this.opts.socket.send(JSON.stringify(msg));
+      this.opts.socket.send(hasBinary(msg) ? encodeFrame(msg) : JSON.stringify(msg));
     } catch {
       /* socket closing — the close handler will clean up */
     }
@@ -252,9 +258,12 @@ export class WsClientTransport<T = unknown> implements SyncTransport<T> {
     });
     this.handshake = hs;
 
+    socket.binaryType = "arraybuffer";
     socket.onopen = () => hs.greet();
     socket.onmessage = (ev) => {
       if (typeof ev.data === "string") hs.onMessage(ev.data);
+      else if (ev.data instanceof ArrayBuffer) hs.onMessage(new Uint8Array(ev.data));
+      else if (ev.data instanceof Uint8Array) hs.onMessage(ev.data);
     };
     socket.onerror = () => {
       /* onclose follows — reconnection handles it */
@@ -303,7 +312,8 @@ export interface WsServerOptions {
 
 /** Handlers to wire into the host framework's WebSocket callbacks. */
 export interface WsAttachment {
-  onMessage(data: string): void;
+  /** Text message, or a binary one (frame carrying bytes). */
+  onMessage(data: string | Uint8Array): void;
   onClose(): void;
 }
 

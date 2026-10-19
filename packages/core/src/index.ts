@@ -15,6 +15,7 @@ export type { CreebaSyncOptions } from "./core.ts";
 export { CompositeTransport } from "./composite.ts";
 export { MemoryNetwork, MemoryTransport } from "./memory.ts";
 export { Emitter } from "./emitter.ts";
+export { decodeFrame, encodeFrame, hasBinary } from "./codec.ts";
 export type { Listener } from "./emitter.ts";
 export type { SyncTransport, TransportEvents } from "./transport.ts";
 export type { Identity, Peer, PeerId, Status, WireFrame } from "./types.ts";

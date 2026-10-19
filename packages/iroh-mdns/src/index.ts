@@ -17,6 +17,8 @@ import {
   type Identity,
   type PeerId,
   type WireFrame,
+  decodeFrame,
+  encodeFrame,
 } from "@streamline-pulse/creeba-core";
 
 /**
@@ -25,7 +27,8 @@ import {
  *
  * Each instance binds an iroh endpoint, advertises its iroh ticket over mDNS for
  * the current topic, connects to discovered peers and exchanges length-prefixed
- * NDJSON frames over a persistent bi-stream. It does not interpret frame
+ * frames (JSON, or a binary envelope for payloads carrying bytes) over a
+ * persistent bi-stream. It does not interpret frame
  * contents: that is the job of the `CreebaSync` core.
  *
  * The protocol (ALPN) and mDNS service are configurable: each app picks its own
@@ -133,7 +136,8 @@ export function verify(
 }
 
 function frameBytes<T>(frame: WireFrame<T>): number[] {
-  const body = new TextEncoder().encode(JSON.stringify(frame));
+  // JSON, or a binary envelope when the payload carries bytes (see core codec).
+  const body = encodeFrame(frame);
   const out = new Uint8Array(4 + body.length);
   new DataView(out.buffer).setUint32(0, body.length, false);
   out.set(body, 4);
@@ -397,7 +401,6 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
 
   private async readLoop(peerId: PeerId, pc: PeerConn): Promise<void> {
     let buf: Uint8Array<ArrayBufferLike> = new Uint8Array(0);
-    const decoder = new TextDecoder();
     for (;;) {
       let chunk: number[];
       try {
@@ -419,7 +422,7 @@ export class IrohMdnsTransport<T = unknown> implements SyncTransport<T> {
         const body = buf.slice(4, 4 + len);
         buf = buf.slice(4 + len);
         try {
-          this.emitter.emit("frame", peerId, JSON.parse(decoder.decode(body)) as WireFrame<T>);
+          this.emitter.emit("frame", peerId, decodeFrame<WireFrame<T>>(body));
         } catch {
           /* corrupted frame */
         }

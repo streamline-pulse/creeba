@@ -44,7 +44,7 @@ describe("creeba-ws", () => {
           atts.set(ws, server.attach({ send: (d) => ws.send(d), close: () => ws.close() }));
         },
         message(ws, m) {
-          atts.get(ws)?.onMessage(String(m));
+          atts.get(ws)?.onMessage(typeof m === "string" ? m : new Uint8Array(m));
         },
         close(ws) {
           atts.get(ws)?.onClose();
@@ -85,6 +85,22 @@ describe("creeba-ws", () => {
     );
     server.broadcast({ kind: "data", payload: { n: 2 } });
     expect(((await gotOnClient) as { payload: { n: number } }).payload.n).toBe(2);
+
+    // Octets bruts dans les deux sens : message binaire, sans base64.
+    const bytes = new Uint8Array(300_000).map((_, i) => i % 251);
+    const binOnServer = waitFor<WireFrame<unknown>>((res) =>
+      server.on("frame", (_p, f) => res(f)),
+    );
+    composite.send(serverId, { kind: "data", payload: { t: "file-part", chunk: bytes } });
+    const receivedChunk = ((await binOnServer) as { payload: { chunk: Uint8Array } }).payload.chunk;
+    expect(receivedChunk).toBeInstanceOf(Uint8Array);
+    expect(Buffer.from(receivedChunk).equals(Buffer.from(bytes))).toBe(true);
+    const binOnClient = waitFor<WireFrame<unknown>>((res) =>
+      composite.on("frame", (_p, f) => res(f)),
+    );
+    server.broadcast({ kind: "data", payload: { chunk: Buffer.from("héllo") } });
+    const back = ((await binOnClient) as { payload: { chunk: Uint8Array } }).payload.chunk;
+    expect(new TextDecoder().decode(back)).toBe("héllo");
 
     // Un client avec une MAUVAISE clé (id ≠ signature) doit être rejeté.
     const impostorKey = generateSecretKey();
