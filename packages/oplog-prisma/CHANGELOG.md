@@ -1,5 +1,11 @@
 # @streamline-pulse/creeba-oplog-prisma
 
+## 7.0.0
+
+### Patch Changes
+
+- @streamline-pulse/creeba-oplog@7.0.0
+
 ## 6.0.1
 
 ### Patch Changes
