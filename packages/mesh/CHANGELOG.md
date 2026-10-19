@@ -1,5 +1,13 @@
 # @streamline-pulse/creeba-mesh
 
+## 7.0.0
+
+### Patch Changes
+
+- Updated dependencies [50bfd44]
+  - @streamline-pulse/creeba-core@7.0.0
+  - @streamline-pulse/creeba-oplog@7.0.0
+
 ## 6.0.1
 
 ### Patch Changes

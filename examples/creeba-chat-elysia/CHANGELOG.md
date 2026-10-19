@@ -1,5 +1,13 @@
 # creeba-chat-elysia
 
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [50bfd44]
+  - @streamline-pulse/creeba-core@7.0.0
+  - @streamline-pulse/creeba-iroh-mdns@7.0.0
+
 ## 0.1.8
 
 ### Patch Changes
